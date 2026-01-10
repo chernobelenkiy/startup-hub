@@ -1,0 +1,183 @@
+// Startup Hub - Prisma Schema
+// PostgreSQL database schema for multilingual startup aggregator
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================
+// ENUMS
+// =====================================
+
+enum ProjectStatus {
+  IDEA
+  MVP
+  BETA
+  LAUNCHED
+  PAUSED
+}
+
+// =====================================
+// MODELS
+// =====================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  avatarUrl     String?
+  locale        String    @default("en")
+
+  // Auth.js / NextAuth fields
+  accounts      Account[]
+  sessions      Session[]
+
+  // Application relations
+  projects      Project[]
+  likes         Like[]
+  apiTokens     APIToken[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+// Auth.js / NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// Auth.js / NextAuth Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Auth.js / NextAuth Verification Token model
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Project {
+  id                String        @id @default(cuid())
+  slug              String        @unique
+
+  // Ownership
+  ownerId           String
+  owner             User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Core info
+  title             String
+  shortDescription  String        @db.VarChar(280)
+  pitch             String        @db.VarChar(500)
+  screenshotUrl     String?
+  websiteUrl        String?
+
+  // Status
+  status            ProjectStatus @default(IDEA)
+  estimatedLaunch   DateTime?
+
+  // Investment
+  needsInvestment   Boolean       @default(false)
+  investmentDetails String?
+
+  // Team & roles - stored as JSON arrays
+  teamMembers       Json          @default("[]") // Array of {name, role, avatarUrl?}
+  lookingFor        String[]      @default([])   // Roles needed: ["developer", "designer"]
+
+  // Categorization
+  tags              String[]      @default([])
+
+  // Engagement
+  likesCount        Int           @default(0)
+  likes             Like[]
+
+  // Language of content
+  language          String        @default("en")
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Indexes for efficient queries
+  @@index([status, createdAt])
+  @@index([tags])
+  @@index([ownerId])
+  @@index([language])
+  @@map("projects")
+}
+
+model Like {
+  userId    String
+  projectId String
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
+  @@map("likes")
+}
+
+model APIToken {
+  id          String    @id @default(cuid())
+
+  // Ownership
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Token data - tokenHash is bcrypt hash of the actual token
+  // tokenPrefix stores first 8 chars after prefix for quick lookup
+  tokenPrefix String
+  tokenHash   String    @unique
+  name        String
+
+  // Permissions: ["read", "create", "update", "delete"]
+  permissions String[]  @default(["read"])
+
+  // Usage tracking
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenPrefix])
+  @@map("api_tokens")
+}
