@@ -235,5 +235,159 @@
     "suggestionBroaden": "Try broadening your search terms",
     "suggestionClearFilters": "Clear some filters to see more results",
     "suggestionDifferentSearch": "Try different keywords"
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "intro": "Your privacy is important to us. This Privacy Policy explains how Startup Hub collects, uses, and protects your personal information.",
+    "sections": {
+      "collect": {
+        "title": "Information We Collect",
+        "content": "We collect information you provide directly to us, such as when you create an account, submit a project, or contact us. This may include your name, email address, and any other information you choose to provide."
+      },
+      "use": {
+        "title": "How We Use Your Information",
+        "content": "We use the information we collect to provide, maintain, and improve our services, to communicate with you, and to protect our users and platform."
+      },
+      "share": {
+        "title": "Information Sharing",
+        "content": "We do not sell your personal information. We may share your information with third-party service providers who assist us in operating our platform, subject to confidentiality obligations."
+      },
+      "security": {
+        "title": "Data Security",
+        "content": "We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "content": "You have the right to access, update, or delete your personal information at any time through your account settings or by contacting us."
+      },
+      "contact": {
+        "title": "Contact Us",
+        "content": "If you have any questions about this Privacy Policy, please contact us."
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated",
+    "intro": "Welcome to Startup Hub. By using our service, you agree to these terms. Please read them carefully.",
+    "sections": {
+      "acceptance": {
+        "title": "Acceptance of Terms",
+        "content": "By accessing or using Startup Hub, you agree to be bound by these Terms of Service and all applicable laws and regulations."
+      },
+      "accounts": {
+        "title": "User Accounts",
+        "content": "You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account."
+      },
+      "content": {
+        "title": "User Content",
+        "content": "You retain ownership of content you submit. By posting content, you grant us a license to use, display, and distribute your content on our platform."
+      },
+      "prohibited": {
+        "title": "Prohibited Conduct",
+        "content": "You agree not to use the service for any unlawful purpose, to harass others, to submit false information, or to interfere with the proper functioning of the platform."
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "content": "Startup Hub is provided \"as is\" without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages."
+      },
+      "changes": {
+        "title": "Changes to Terms",
+        "content": "We may modify these terms at any time. Continued use of the service after changes constitutes acceptance of the new terms."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We'd love to hear from you",
+    "description": "Have questions, feedback, or partnership inquiries? Get in touch with us.",
+    "email": "Email",
+    "emailValue": "hello@startuphub.com",
+    "social": "Social Media",
+    "form": {
+      "name": "Your Name",
+      "email": "Your Email",
+      "subject": "Subject",
+      "message": "Message",
+      "send": "Send Message",
+      "sending": "Sending...",
+      "success": "Message sent successfully! We'll get back to you soon.",
+      "error": "Failed to send message. Please try again."
+    }
+  },
+  "mcp": {
+    "title": "MCP API Documentation",
+    "subtitle": "Integrate Startup Hub with AI assistants",
+    "description": "The Model Context Protocol (MCP) API allows AI assistants to interact with Startup Hub programmatically.",
+    "sections": {
+      "overview": {
+        "title": "Overview",
+        "content": "The MCP API provides endpoints for listing projects, creating new projects, managing likes, and more. All endpoints require authentication via Bearer token."
+      },
+      "authentication": {
+        "title": "Authentication",
+        "content": "All API requests must include an Authorization header with your API token.",
+        "example": "Authorization: Bearer YOUR_API_TOKEN",
+        "getToken": "Get your API token from the",
+        "tokenSettings": "API Tokens settings"
+      },
+      "endpoints": {
+        "title": "Endpoints",
+        "baseUrl": "Base URL"
+      },
+      "listProjects": {
+        "title": "List Projects",
+        "description": "Get a paginated list of projects with optional filtering.",
+        "params": {
+          "cursor": "Pagination cursor (optional)",
+          "limit": "Number of results (default: 10, max: 100)",
+          "status": "Filter by status (IDEA, MVP, BETA, LAUNCHED, PAUSED)",
+          "tags": "Filter by tags (comma-separated)",
+          "search": "Search query"
+        }
+      },
+      "getProject": {
+        "title": "Get Project",
+        "description": "Get details of a specific project by slug."
+      },
+      "createProject": {
+        "title": "Create Project",
+        "description": "Create a new project. Requires create permission."
+      },
+      "updateProject": {
+        "title": "Update Project",
+        "description": "Update an existing project. Requires update permission."
+      },
+      "deleteProject": {
+        "title": "Delete Project",
+        "description": "Delete a project. Requires delete permission."
+      },
+      "likeProject": {
+        "title": "Like/Unlike Project",
+        "description": "Toggle like status on a project."
+      },
+      "rateLimiting": {
+        "title": "Rate Limiting",
+        "content": "API requests are limited to 100 requests per minute per token. Rate limit headers are included in all responses.",
+        "headers": {
+          "limit": "X-RateLimit-Limit: Maximum requests per window",
+          "remaining": "X-RateLimit-Remaining: Requests remaining",
+          "reset": "X-RateLimit-Reset: Time when the rate limit resets"
+        }
+      },
+      "errors": {
+        "title": "Error Handling",
+        "content": "All errors return a consistent JSON format with an error code and message.",
+        "codes": {
+          "400": "Bad Request - Invalid parameters",
+          "401": "Unauthorized - Missing or invalid token",
+          "403": "Forbidden - Insufficient permissions",
+          "404": "Not Found - Resource not found",
+          "429": "Too Many Requests - Rate limit exceeded",
+          "500": "Internal Server Error"
+        }
+      }
+    }
   }
 }

@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { ProjectGrid } from "@/components/home";
 import { ProjectCardSkeleton } from "@/components/project";
 import { UserMenu } from "@/components/auth";
+import { McpPopup } from "@/components/mcp";
 import { auth } from "@/lib/auth";
 
 interface HomePageProps {
@@ -34,11 +35,17 @@ function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) {
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-xl font-bold text-primary">
-              {t("common.appName")}
+            <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                <rect width="32" height="32" rx="8" fill="currentColor"/>
+                <path d="M16 6L22 12H18V20H14V12H10L16 6Z" fill="white"/>
+                <rect x="10" y="22" width="12" height="3" rx="1.5" fill="white"/>
+              </svg>
+              <span className="hidden sm:inline">{t("common.appName")}</span>
             </Link>
           </div>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <McpPopup />
             {isLoggedIn ? (
               <>
                 <Button variant="ghost" asChild>
@@ -105,13 +112,13 @@ function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) {
               {t("footer.copyright")}.
             </p>
             <nav className="flex gap-4 text-sm text-muted">
-              <Link href="/" className="hover:text-foreground">
+              <Link href="/privacy" className="hover:text-foreground">
                 {t("footer.privacy")}
               </Link>
-              <Link href="/" className="hover:text-foreground">
+              <Link href="/terms" className="hover:text-foreground">
                 {t("footer.terms")}
               </Link>
-              <Link href="/" className="hover:text-foreground">
+              <Link href="/contact" className="hover:text-foreground">
                 {t("footer.contact")}
               </Link>
             </nav>

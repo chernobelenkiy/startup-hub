@@ -184,9 +184,14 @@ export function InfiniteScrollProjects({
     );
   }
 
-  // Empty state
+  // Empty state - only show when filters are active (no results found)
+  // When no filters and no projects, don't show anything
   if (projects.length === 0 && !isLoading) {
-    return <EmptyState hasFilters={hasActiveFilters} />;
+    if (hasActiveFilters) {
+      return <EmptyState hasFilters={hasActiveFilters} />;
+    }
+    // No projects and no filters - show nothing
+    return null;
   }
 
   return (
