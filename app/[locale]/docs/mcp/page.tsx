@@ -83,7 +83,7 @@ function McpDocsContent() {
           <p className="text-muted mb-4">
             {t("sections.endpoints.baseUrl")}:{" "}
             <code className="bg-surface-elevated px-2 py-1 rounded text-primary">
-              https://your-domain.com/api/mcp
+              https://startup-hub.space/api/mcp
             </code>
           </p>
 

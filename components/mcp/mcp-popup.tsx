@@ -23,7 +23,7 @@ export function McpPopup() {
       "command": "npx",
       "args": ["-y", "@anthropic/mcp-client"],
       "env": {
-        "STARTUP_HUB_API_URL": "https://your-domain.com/api/mcp",
+        "STARTUP_HUB_API_URL": "https://startup-hub.space/api/mcp",
         "STARTUP_HUB_API_TOKEN": "YOUR_API_TOKEN"
       }
     }

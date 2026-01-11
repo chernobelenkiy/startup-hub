@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { ArrowLeft, Mail, Twitter, Github } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 
 interface ContactPageProps {
   params: Promise<{ locale: string }>;
@@ -36,50 +36,24 @@ function ContactContent() {
         {/* Description */}
         <p className="text-muted mb-12 leading-relaxed">{t("description")}</p>
 
-        {/* Contact options */}
-        <div className="grid gap-8 md:grid-cols-2">
-          {/* Email */}
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-full bg-primary/10 p-2">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">
-                {t("email")}
-              </h2>
+        {/* Telegram */}
+        <div className="rounded-lg border border-border bg-surface p-6 max-w-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-full bg-primary/10 p-2">
+              <Send className="h-5 w-5 text-primary" />
             </div>
-            <a
-              href={`mailto:${t("emailValue")}`}
-              className="text-primary hover:underline"
-            >
-              {t("emailValue")}
-            </a>
-          </div>
-
-          {/* Social */}
-          <div className="rounded-lg border border-border bg-surface p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              {t("social")}
+            <h2 className="text-lg font-semibold text-foreground">
+              Telegram
             </h2>
-            <div className="flex gap-4">
-              <a
-                href="https://twitter.com/startuphub"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full bg-surface-elevated p-3 text-muted hover:text-foreground transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="https://github.com/startuphub"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full bg-surface-elevated p-3 text-muted hover:text-foreground transition-colors"
-              >
-                <Github className="h-5 w-5" />
-              </a>
-            </div>
           </div>
+          <a
+            href="https://t.me/startuphub_space"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            @startuphub_space
+          </a>
         </div>
       </div>
     </div>
