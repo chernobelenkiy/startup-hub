@@ -20,8 +20,7 @@ export function McpPopup() {
   const mcpConfig = `{
   "mcpServers": {
     "startup-hub": {
-      "type": "sse",
-      "url": "https://startup-hub.space/api/v1/mcp/sse",
+      "url": "https://startup-hub.space/api/v1/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_API_TOKEN"
       }
