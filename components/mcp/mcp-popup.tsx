@@ -12,15 +12,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function McpPopup() {
   const t = useTranslations();
-  const [copied, setCopied] = React.useState(false);
+  const [copiedCursor, setCopiedCursor] = React.useState(false);
+  const [copiedClaude, setCopiedClaude] = React.useState(false);
 
-  const mcpConfig = `{
+  const cursorConfig = `{
   "mcpServers": {
     "startup-hub": {
-      "url": "https://startup-hub.space/api/v1/mcp",
+      "url": "https://www.startup-hub.space/api/v1/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_API_TOKEN"
       }
@@ -28,10 +30,21 @@ export function McpPopup() {
   }
 }`;
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(mcpConfig);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const claudeCodeCommand = `claude mcp add startup-hub \\
+  -e MCP_AUTH_TOKEN=YOUR_API_TOKEN \\
+  -- npx -y mcp-remote \\
+  https://www.startup-hub.space/api/v1/mcp/mcp`;
+
+  const handleCopyCursor = async () => {
+    await navigator.clipboard.writeText(cursorConfig);
+    setCopiedCursor(true);
+    setTimeout(() => setCopiedCursor(false), 2000);
+  };
+
+  const handleCopyClaude = async () => {
+    await navigator.clipboard.writeText(claudeCodeCommand.replace(/\\\n\s*/g, ""));
+    setCopiedClaude(true);
+    setTimeout(() => setCopiedClaude(false), 2000);
   };
 
   return (
@@ -42,7 +55,7 @@ export function McpPopup() {
           <span className="hidden sm:inline">MCP</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-surface sm:max-w-[520px]">
+      <DialogContent className="bg-surface sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Code2 className="h-5 w-5 text-primary" />
@@ -54,32 +67,57 @@ export function McpPopup() {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* MCP Config */}
-          <div>
-            <h3 className="text-sm font-medium text-foreground mb-2">
-              Add to Claude Code / Cursor
-            </h3>
-            <p className="text-sm text-muted mb-3">
-              Add this to your MCP settings (mcp.json):
-            </p>
-            <div className="relative">
-              <pre className="rounded-lg bg-surface-elevated border border-border p-4 text-xs font-mono text-muted overflow-x-auto">
-                {mcpConfig}
-              </pre>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="absolute top-2 right-2"
-                onClick={handleCopy}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+          {/* MCP Config Tabs */}
+          <Tabs defaultValue="cursor" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="cursor">Cursor</TabsTrigger>
+              <TabsTrigger value="claude">Claude Code</TabsTrigger>
+            </TabsList>
+            <TabsContent value="cursor" className="mt-3">
+              <p className="text-sm text-muted mb-3">
+                Add to your <code className="text-primary">~/.cursor/mcp.json</code>:
+              </p>
+              <div className="relative">
+                <pre className="rounded-lg bg-surface-elevated border border-border p-4 text-xs font-mono text-muted overflow-x-auto">
+                  {cursorConfig}
+                </pre>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-2 right-2"
+                  onClick={handleCopyCursor}
+                >
+                  {copiedCursor ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+            <TabsContent value="claude" className="mt-3">
+              <p className="text-sm text-muted mb-3">
+                Run this command in your terminal:
+              </p>
+              <div className="relative">
+                <pre className="rounded-lg bg-surface-elevated border border-border p-4 text-xs font-mono text-muted overflow-x-auto whitespace-pre-wrap">
+                  {claudeCodeCommand}
+                </pre>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-2 right-2"
+                  onClick={handleCopyClaude}
+                >
+                  {copiedClaude ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Get API Token */}
           <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
