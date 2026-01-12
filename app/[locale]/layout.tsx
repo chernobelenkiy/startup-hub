@@ -34,6 +34,10 @@ export const metadata: Metadata = {
     "investment",
     "MVP",
   ],
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export function generateStaticParams() {
