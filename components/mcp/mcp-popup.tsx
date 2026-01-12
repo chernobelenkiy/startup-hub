@@ -20,11 +20,10 @@ export function McpPopup() {
   const mcpConfig = `{
   "mcpServers": {
     "startup-hub": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-client"],
-      "env": {
-        "STARTUP_HUB_API_URL": "https://startup-hub.space/api/mcp",
-        "STARTUP_HUB_API_TOKEN": "YOUR_API_TOKEN"
+      "type": "sse",
+      "url": "https://startup-hub.space/api/v1/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
       }
     }
   }
@@ -44,11 +43,11 @@ export function McpPopup() {
           <span className="hidden sm:inline">MCP</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-surface sm:max-w-[500px]">
+      <DialogContent className="bg-surface sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Code2 className="h-5 w-5 text-primary" />
-            MCP API
+            MCP Integration
           </DialogTitle>
           <DialogDescription>
             {t("mcp.description")}
@@ -56,16 +55,14 @@ export function McpPopup() {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Quick setup */}
+          {/* MCP Config */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2">
-              Quick Setup
+              Add to Claude Code / Cursor
             </h3>
             <p className="text-sm text-muted mb-3">
-              Add this to your Claude Code or Cursor MCP settings:
+              Add this to your MCP settings (mcp.json):
             </p>
-            
-            {/* Config block */}
             <div className="relative">
               <pre className="rounded-lg bg-surface-elevated border border-border p-4 text-xs font-mono text-muted overflow-x-auto">
                 {mcpConfig}
@@ -99,18 +96,17 @@ export function McpPopup() {
             </p>
           </div>
 
-          {/* Endpoints summary */}
+          {/* Available Tools */}
           <div>
             <h3 className="text-sm font-medium text-foreground mb-2">
-              Available Endpoints
+              Available Tools
             </h3>
             <ul className="text-sm text-muted space-y-1">
-              <li><code className="text-primary">GET /projects</code> - List projects</li>
-              <li><code className="text-primary">GET /projects/:slug</code> - Get project</li>
-              <li><code className="text-primary">POST /projects</code> - Create project</li>
-              <li><code className="text-primary">PUT /projects/:slug</code> - Update project</li>
-              <li><code className="text-primary">DELETE /projects/:slug</code> - Delete project</li>
-              <li><code className="text-primary">POST /projects/:slug/like</code> - Toggle like</li>
+              <li><code className="text-primary">list_projects</code> - Search and list projects</li>
+              <li><code className="text-primary">get_project</code> - Get project details</li>
+              <li><code className="text-primary">create_project</code> - Create new project</li>
+              <li><code className="text-primary">update_project</code> - Update your project</li>
+              <li><code className="text-primary">delete_project</code> - Delete your project</li>
             </ul>
           </div>
 
