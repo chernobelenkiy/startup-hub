@@ -64,17 +64,20 @@ export function EditProjectModal({
 
   const fetchProject = async () => {
     setIsFetching(true);
+    setFullProject(null);
     try {
       const response = await fetch(`/api/projects/${project.id}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch project");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Fetch project error:", response.status, errorData);
+        toast.error(errorData.error || tErrors("serverError"));
+        return;
       }
       const data = await response.json();
       setFullProject(data.project);
     } catch (error) {
       console.error("Fetch project error:", error);
       toast.error(tErrors("serverError"));
-      onOpenChange(false);
     } finally {
       setIsFetching(false);
     }
@@ -143,7 +146,17 @@ export function EditProjectModal({
             isLoading={isLoading}
             submitLabel={t("editProject")}
           />
-        ) : null}
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <p className="text-muted-foreground">Failed to load project data</p>
+            <button
+              onClick={fetchProject}
+              className="text-primary hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

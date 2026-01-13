@@ -55,9 +55,19 @@ function getPlaceholderGradient(id: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
+const PREDEFINED_ROLES = ["developer", "designer", "marketer", "productManager", "cofounder", "investor", "advisor"] as const;
+type PredefinedRole = typeof PREDEFINED_ROLES[number];
+
 export function ProjectCard({ project, className }: ProjectCardProps) {
   const t = useTranslations();
   const tRoles = useTranslations("roles");
+
+  const translateRole = (role: string): string => {
+    if (PREDEFINED_ROLES.includes(role as PredefinedRole)) {
+      return tRoles(role as PredefinedRole);
+    }
+    return role;
+  };
 
   const visibleTags = project.tags.slice(0, MAX_VISIBLE_TAGS);
   const remainingTagsCount = project.tags.length - MAX_VISIBLE_TAGS;
@@ -148,7 +158,7 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
                 variant="outline"
                 className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs"
               >
-                {tRoles(role as keyof IntlMessages["roles"])}
+                {translateRole(role)}
               </Badge>
             ))}
             {remainingRolesCount > 0 && (

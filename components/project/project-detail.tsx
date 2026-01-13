@@ -54,9 +54,19 @@ interface ProjectDetailProps {
   onEdit?: () => void;
 }
 
+const PREDEFINED_ROLES = ["developer", "designer", "marketer", "productManager", "cofounder", "investor", "advisor"] as const;
+type PredefinedRole = typeof PREDEFINED_ROLES[number];
+
 export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) {
   const t = useTranslations("project");
   const tRoles = useTranslations("roles");
+
+  const translateRole = (role: string): string => {
+    if (PREDEFINED_ROLES.includes(role as PredefinedRole)) {
+      return tRoles(role as PredefinedRole);
+    }
+    return role;
+  };
 
   return (
     <div className="space-y-8">
@@ -230,7 +240,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                 <div className="flex flex-wrap gap-2">
                   {project.lookingFor.map((role) => (
                     <Badge key={role} variant="outline" className="border-primary/30">
-                      {tRoles(role as "developer" | "designer" | "marketer" | "productManager" | "cofounder" | "investor" | "advisor")}
+                      {translateRole(role)}
                     </Badge>
                   ))}
                 </div>
