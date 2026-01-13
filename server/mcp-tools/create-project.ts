@@ -6,11 +6,12 @@ import { generateSlug } from "@/lib/utils";
 export const createProjectSchema = {
   title: z.string().min(1).max(100).describe("Project title"),
   shortDescription: z.string().min(1).max(200).describe("Short description (max 200 chars)"),
-  pitch: z.string().optional().describe("Full project pitch/description"),
+  pitch: z.string().optional().describe("General pitch describing the project's vision, problem being solved, solution, and value proposition. This is the main narrative about what the project does and why it matters."),
   status: z.enum(["IDEA", "MVP", "BETA", "LAUNCHED", "PAUSED"]).optional().describe("Project status"),
   tags: z.array(z.string()).optional().describe("Project tags"),
   lookingFor: z.array(z.string()).optional().describe("Roles you're looking for"),
   websiteUrl: z.string().url().optional().describe("Project website URL"),
+  traction: z.string().optional().describe("Traction and progress metrics: user growth, revenue, partnerships, milestones achieved, beta users, waitlist size, or any other evidence of market validation"),
   needsInvestment: z.boolean().optional().describe("Whether project needs investment"),
   investmentDetails: z.string().optional().describe("Investment details if needed")
 };
@@ -37,6 +38,7 @@ export async function createProjectHandler(
         tags: input.tags || [],
         lookingFor: input.lookingFor || [],
         websiteUrl: input.websiteUrl,
+        traction: input.traction,
         needsInvestment: input.needsInvestment || false,
         investmentDetails: input.investmentDetails,
         ownerId: auth.userId

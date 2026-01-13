@@ -112,6 +112,9 @@ model Project {
   status            ProjectStatus @default(IDEA)
   estimatedLaunch   DateTime?
 
+  // Traction
+  traction          String?       @db.Text // Metrics, milestones, user growth, revenue, partnerships, etc.
+
   // Investment
   needsInvestment   Boolean       @default(false)
   investmentDetails String?

@@ -133,6 +133,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.lookingFor !== undefined) updateData.lookingFor = data.lookingFor;
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.language !== undefined) updateData.language = data.language;
+    if (data.traction !== undefined) updateData.traction = data.traction || null;
 
     // Update project
     const project = await db.project.update({
@@ -150,6 +151,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         estimatedLaunch: true,
         needsInvestment: true,
         investmentDetails: true,
+        traction: true,
         teamMembers: true,
         lookingFor: true,
         tags: true,

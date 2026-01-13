@@ -32,6 +32,7 @@ interface FullProject {
   screenshotUrl: string | null;
   status: "IDEA" | "MVP" | "BETA" | "LAUNCHED" | "PAUSED";
   estimatedLaunch: string | null;
+  traction: string | null;
   needsInvestment: boolean;
   investmentDetails: string | null;
   teamMembers: TeamMember[];
@@ -135,6 +136,7 @@ export function EditProjectModal({
               estimatedLaunch: fullProject.estimatedLaunch
                 ? new Date(fullProject.estimatedLaunch)
                 : null,
+              traction: fullProject.traction,
               needsInvestment: fullProject.needsInvestment,
               investmentDetails: fullProject.investmentDetails,
               teamMembers: fullProject.teamMembers,

@@ -71,6 +71,7 @@ export function ProjectForm({
   const [investmentDetails, setInvestmentDetails] = React.useState(
     initialData?.investmentDetails || ""
   );
+  const [traction, setTraction] = React.useState(initialData?.traction || "");
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>(
     (initialData?.teamMembers as TeamMember[]) || []
   );
@@ -158,6 +159,7 @@ export function ProjectForm({
       status,
       tags,
       lookingFor,
+      traction: traction.trim() || null,
       needsInvestment,
       investmentDetails: needsInvestment ? investmentDetails.trim() : null,
       teamMembers,
@@ -298,6 +300,23 @@ export function ProjectForm({
               {tRoles(role)}
             </Button>
           ))}
+        </div>
+      </div>
+
+      {/* Traction */}
+      <div className="space-y-2">
+        <Label htmlFor="traction">{t("traction")}</Label>
+        <Textarea
+          id="traction"
+          value={traction}
+          onChange={(e) => setTraction(e.target.value)}
+          placeholder={t("tractionPlaceholder")}
+          maxLength={2000}
+          className="min-h-[100px]"
+        />
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">{t("tractionHint")}</span>
+          <span className="text-muted-foreground">{traction.length}/2000</span>
         </div>
       </div>
 

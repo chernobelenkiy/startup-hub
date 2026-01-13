@@ -17,6 +17,7 @@ import {
   DollarSign,
   Pencil,
   Globe,
+  TrendingUp,
 } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 import type { ProjectStatus } from "@/lib/db";
@@ -33,6 +34,7 @@ interface ProjectDetailProps {
     websiteUrl: string | null;
     status: ProjectStatus;
     estimatedLaunch: string | null;
+    traction: string | null;
     needsInvestment: boolean;
     investmentDetails: string | null;
     teamMembers: TeamMember[];
@@ -175,6 +177,21 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                     </Badge>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Traction */}
+          {project.traction && (
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="size-5 text-green-500" />
+                  <h2 className="text-xl font-semibold">{t("traction")}</h2>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Markdown content={project.traction} />
               </CardContent>
             </Card>
           )}

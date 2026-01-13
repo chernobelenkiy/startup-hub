@@ -18,6 +18,7 @@ interface ProjectDetailClientProps {
     websiteUrl: string | null;
     status: ProjectStatus;
     estimatedLaunch: string | null;
+    traction: string | null;
     needsInvestment: boolean;
     investmentDetails: string | null;
     teamMembers: TeamMember[];

@@ -92,6 +92,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     websiteUrl: project.websiteUrl,
     status: project.status,
     estimatedLaunch: project.estimatedLaunch?.toISOString() || null,
+    traction: project.traction,
     needsInvestment: project.needsInvestment,
     investmentDetails: project.investmentDetails,
     teamMembers: project.teamMembers as Array<{ name: string; role: string; avatarUrl?: string | null }>,

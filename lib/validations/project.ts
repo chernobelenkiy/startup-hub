@@ -36,6 +36,7 @@ export const createProjectSchema = z.object({
   screenshotUrl: z.string().url("Must be a valid URL").optional().nullable(),
   status: projectStatusSchema.default("IDEA"),
   estimatedLaunch: z.coerce.date().optional().nullable(),
+  traction: z.string().max(2000).optional().nullable(),
   needsInvestment: z.boolean().default(false),
   investmentDetails: z.string().max(1000).optional().nullable(),
   teamMembers: z.array(teamMemberSchema).default([]),
