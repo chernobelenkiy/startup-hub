@@ -1,6 +1,8 @@
-import { createMcpHandler } from "@vercel/mcp-adapter";
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { db as prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 import {
-  extractUserIdFromToken,
   listProjectsSchema,
   listProjectsHandler,
   getProjectSchema,
@@ -21,9 +23,9 @@ const handler = createMcpHandler(
       "list_projects",
       "List projects with optional filtering by status, tags, or search query. Returns paginated results.",
       listProjectsSchema,
-      async (params) => {
-        const userId = await extractUserIdFromToken();
-        return listProjectsHandler(params, userId);
+      async (params, extra) => {
+        const userId = extra.authInfo?.extra?.userId as string | undefined;
+        return listProjectsHandler(params, userId || null);
       }
     );
 
@@ -32,9 +34,9 @@ const handler = createMcpHandler(
       "get_project",
       "Get detailed information about a specific project by its slug or ID.",
       getProjectSchema,
-      async (params) => {
-        const userId = await extractUserIdFromToken();
-        return getProjectHandler(params, userId);
+      async (params, extra) => {
+        const userId = extra.authInfo?.extra?.userId as string | undefined;
+        return getProjectHandler(params, userId || null);
       }
     );
 
@@ -43,9 +45,9 @@ const handler = createMcpHandler(
       "create_project",
       "Create a new project. Requires authentication with an API token that has 'create' permission.",
       createProjectSchema,
-      async (params) => {
-        const userId = await extractUserIdFromToken();
-        return createProjectHandler(params, userId);
+      async (params, extra) => {
+        const userId = extra.authInfo?.extra?.userId as string | undefined;
+        return createProjectHandler(params, userId || null);
       }
     );
 
@@ -54,9 +56,9 @@ const handler = createMcpHandler(
       "update_project",
       "Update an existing project. Requires authentication and ownership of the project.",
       updateProjectSchema,
-      async (params) => {
-        const userId = await extractUserIdFromToken();
-        return updateProjectHandler(params, userId);
+      async (params, extra) => {
+        const userId = extra.authInfo?.extra?.userId as string | undefined;
+        return updateProjectHandler(params, userId || null);
       }
     );
 
@@ -65,21 +67,70 @@ const handler = createMcpHandler(
       "delete_project",
       "Delete a project. Requires authentication and ownership of the project.",
       deleteProjectSchema,
-      async (params) => {
-        const userId = await extractUserIdFromToken();
-        return deleteProjectHandler(params, userId);
+      async (params, extra) => {
+        const userId = extra.authInfo?.extra?.userId as string | undefined;
+        return deleteProjectHandler(params, userId || null);
       }
     );
   },
-  {
-    capabilities: {
-      tools: {}
-    }
-  },
+  {},
   {
     basePath: "/api/v1/mcp",
     verboseLogs: process.env.NODE_ENV === "development"
   }
 );
 
-export { handler as GET, handler as POST };
+// Token verification function
+const verifyToken = async (
+  req: Request,
+  bearerToken?: string
+): Promise<AuthInfo | undefined> => {
+  if (!bearerToken) return undefined;
+
+  try {
+    // Find all non-revoked, non-expired tokens
+    const tokens = await prisma.aPIToken.findMany({
+      where: {
+        revokedAt: null,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } }
+        ]
+      }
+    });
+
+    // Compare token with stored hashes
+    for (const record of tokens) {
+      const isValid = await bcrypt.compare(bearerToken, record.tokenHash);
+      if (isValid) {
+        // Update lastUsedAt (fire-and-forget)
+        prisma.aPIToken.update({
+          where: { id: record.id },
+          data: { lastUsedAt: new Date() }
+        }).catch(() => {});
+
+        return {
+          token: bearerToken,
+          scopes: record.permissions,
+          clientId: record.userId,
+          extra: {
+            userId: record.userId,
+            tokenId: record.id,
+          },
+        };
+      }
+    }
+
+    return undefined;
+  } catch (error) {
+    console.error("[MCP Auth] Error:", error);
+    return undefined;
+  }
+};
+
+// Wrap handler with auth (not required, so public endpoints still work)
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: false
+});
+
+export { authHandler as GET, authHandler as POST };
