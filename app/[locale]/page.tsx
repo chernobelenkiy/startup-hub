@@ -7,6 +7,7 @@ import { ProjectGrid } from "@/components/home";
 import { ProjectCardSkeleton } from "@/components/project";
 import { UserMenu } from "@/components/auth";
 import { McpPopup } from "@/components/mcp";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { auth } from "@/lib/auth";
 
 interface HomePageProps {
@@ -45,6 +46,7 @@ function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) {
             </Link>
           </div>
           <nav className="flex items-center gap-2 sm:gap-4">
+            <LanguageSwitcher />
             <McpPopup />
             {isLoggedIn ? (
               <>

@@ -6,6 +6,7 @@
     "error": "Что-то пошло не так",
     "retry": "Попробовать снова",
     "save": "Сохранить",
+    "saving": "Сохранение...",
     "cancel": "Отмена",
     "delete": "Удалить",
     "edit": "Редактировать",
@@ -127,6 +128,20 @@
     "totalLikes": "Всего лайков",
     "recentActivity": "Последняя активность",
     "welcome": "С возвращением"
+  },
+  "settings": {
+    "title": "Настройки",
+    "description": "Управление настройками аккаунта",
+    "profile": "Профиль",
+    "profileDescription": "Обновите личную информацию",
+    "name": "Имя",
+    "namePlaceholder": "Введите ваше имя",
+    "email": "Email",
+    "emailNote": "Email нельзя изменить",
+    "profileUpdated": "Профиль успешно обновлен",
+    "apiTokens": "API Токены",
+    "apiTokensDescription": "Управление API токенами для MCP интеграции",
+    "manageTokens": "Управление токенами"
   },
   "apiTokens": {
     "title": "API Токены",

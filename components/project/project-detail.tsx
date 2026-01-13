@@ -18,6 +18,7 @@ import {
   Pencil,
   Globe,
 } from "lucide-react";
+import { Markdown } from "@/components/ui/markdown";
 import type { ProjectStatus } from "@/lib/db";
 import type { TeamMember } from "@/lib/validations/project";
 
@@ -142,9 +143,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
               <h2 className="text-xl font-semibold">{t("pitch")}</h2>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
-                {project.pitch}
-              </p>
+              <Markdown content={project.pitch} />
             </CardContent>
           </Card>
 

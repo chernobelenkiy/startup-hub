@@ -6,6 +6,7 @@
     "error": "Something went wrong",
     "retry": "Try again",
     "save": "Save",
+    "saving": "Saving...",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -127,6 +128,20 @@
     "totalLikes": "Total Likes",
     "recentActivity": "Recent Activity",
     "welcome": "Welcome back"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences",
+    "profile": "Profile",
+    "profileDescription": "Update your personal information",
+    "name": "Name",
+    "namePlaceholder": "Enter your name",
+    "email": "Email",
+    "emailNote": "Email cannot be changed",
+    "profileUpdated": "Profile updated successfully",
+    "apiTokens": "API Tokens",
+    "apiTokensDescription": "Manage your API tokens for MCP integration",
+    "manageTokens": "Manage Tokens"
   },
   "apiTokens": {
     "title": "API Tokens",
