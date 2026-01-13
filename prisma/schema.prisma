@@ -104,7 +104,7 @@ model Project {
   // Core info
   title             String
   shortDescription  String        @db.VarChar(280)
-  pitch             String        @db.VarChar(500)
+  pitch             String        @db.Text
   screenshotUrl     String?
   websiteUrl        String?
 
