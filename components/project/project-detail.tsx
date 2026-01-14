@@ -1,7 +1,7 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useLocale } from "next-intl";
+import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import {
   Card,
   CardContent,
@@ -75,11 +75,23 @@ type PredefinedRole = typeof PREDEFINED_ROLES[number];
 export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) {
   const t = useTranslations("project");
   const tRoles = useTranslations("roles");
-  const locale = useLocale();
+  const siteLocale = useLocale();
 
-  // Resolve the best translation based on user locale
+  // Get available languages from translations
   const translations = project.translations || [];
-  const translation = getBestTranslation(translations, locale);
+  const availableLanguages = getAvailableLanguages(translations);
+
+  // Allow user to select language, default to site locale
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(() => {
+    // Default to site locale if available, otherwise first available language
+    if (availableLanguages.includes(siteLocale as SupportedLanguage)) {
+      return siteLocale as SupportedLanguage;
+    }
+    return availableLanguages[0] || (siteLocale as SupportedLanguage);
+  });
+
+  // Resolve the content based on selected language
+  const translation = getBestTranslation(translations, selectedLanguage);
 
   const resolvedContent = {
     title: translation?.title ?? project.title ?? "",
@@ -89,8 +101,6 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
     investmentDetails: translation?.investmentDetails ?? project.investmentDetails,
     language: translation?.language ?? project.language,
   };
-
-  const availableLanguages = getAvailableLanguages(translations);
 
   const translateRole = (role: string): string => {
     if (PREDEFINED_ROLES.includes(role as PredefinedRole)) {
@@ -119,11 +129,25 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{resolvedContent.title}</h1>
               <ProjectStatusBadge status={project.status} />
-              {/* Language indicator */}
+              {/* Language selector */}
               {availableLanguages.length > 1 && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Languages className="size-3" />
-                  {availableLanguages.map((lang) => LANGUAGE_LABELS[lang]).join(" / ")}
+                <div className="flex items-center gap-1">
+                  <Languages className="size-4 text-muted-foreground" />
+                  <div className="flex gap-1">
+                    {availableLanguages.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => setSelectedLanguage(lang)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                          selectedLanguage === lang
+                            ? "bg-primary text-primary-foreground font-medium"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {LANGUAGE_LABELS[lang]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

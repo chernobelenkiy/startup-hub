@@ -33,8 +33,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Check for authenticated user (optional for this endpoint)
-    const session = await auth();
-    const userId = session?.user?.id;
+    // Wrap in try-catch to handle auth failures gracefully
+    let userId: string | undefined;
+    try {
+      const session = await auth();
+      userId = session?.user?.id;
+    } catch {
+      // Auth failed - continue as unauthenticated
+      userId = undefined;
+    }
 
     // Get locale from query param, header, or default to "ru"
     const headerLocale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0];

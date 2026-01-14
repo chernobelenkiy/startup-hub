@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { ProjectCard } from "@/components/project/project-card";
 import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
@@ -48,6 +48,7 @@ export function InfiniteScrollProjects({
   initialHasMore = true,
 }: InfiniteScrollProjectsProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -55,6 +56,7 @@ export function InfiniteScrollProjects({
   const [isInitialLoad, setIsInitialLoad] = useState(initialProjects.length === 0);
   const [error, setError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const hasActiveFilters = useMemo(() => {
     return (
@@ -66,10 +68,18 @@ export function InfiniteScrollProjects({
     );
   }, [filters]);
 
+  // Stable string representations for dependency tracking
+  const statusKey = filters.status.join(",");
+  const rolesKey = filters.roles.join(",");
+  const tagsKey = filters.tags.join(",");
+
   // Build query string from filters
   const buildQueryString = useCallback(
     (nextCursor?: string | null) => {
       const params = new URLSearchParams();
+
+      // Always include locale for proper translation
+      params.set("locale", locale);
 
       if (filters.search) params.set("search", filters.search);
       if (filters.status.length > 0) params.set("status", filters.status.join(","));
@@ -83,7 +93,7 @@ export function InfiniteScrollProjects({
 
       return params.toString();
     },
-    [filters]
+    [filters, locale]
   );
 
   // Fetch projects from API
@@ -91,12 +101,23 @@ export function InfiniteScrollProjects({
     async (isInitial: boolean = false) => {
       if (isLoading) return;
 
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this request
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       setIsLoading(true);
       setError(null);
 
       try {
         const queryString = buildQueryString(isInitial ? null : cursor);
-        const response = await fetch(`/api/projects/public?${queryString}`);
+        const response = await fetch(`/api/projects/public?${queryString}`, {
+          signal: abortController.signal,
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch projects");
@@ -104,40 +125,64 @@ export function InfiniteScrollProjects({
 
         const data = await response.json();
 
-        if (isInitial) {
-          setProjects(data.projects);
-        } else {
-          setProjects((prev) => [...prev, ...data.projects]);
-        }
+        // Only update state if request wasn't aborted
+        if (!abortController.signal.aborted) {
+          if (isInitial) {
+            setProjects(data.projects);
+          } else {
+            setProjects((prev) => [...prev, ...data.projects]);
+          }
 
-        setCursor(data.nextCursor);
-        setHasMore(data.hasMore);
+          setCursor(data.nextCursor);
+          setHasMore(data.hasMore);
+        }
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
         console.error("Error fetching projects:", err);
         setError(t("common.error"));
       } finally {
-        setIsLoading(false);
-        setIsInitialLoad(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+          setIsInitialLoad(false);
+        }
       }
     },
     [buildQueryString, cursor, isLoading, t]
   );
 
-  // Reset and fetch on filter change
+  // Reset and fetch on filter change or locale change
   useEffect(() => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     setProjects([]);
     setCursor(null);
     setHasMore(true);
     setIsInitialLoad(true);
     fetchProjects(true);
+
+    // Cleanup: abort request on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+    // Note: fetchProjects intentionally excluded to prevent infinite loop
+    // (fetchProjects depends on cursor, which changes on each fetch)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     filters.search,
-    filters.status.join(","),
-    filters.roles.join(","),
+    statusKey,
+    rolesKey,
     filters.needsInvestment,
-    filters.tags.join(","),
+    tagsKey,
     filters.sort,
+    locale,
   ]);
 
   // IntersectionObserver for infinite scroll
