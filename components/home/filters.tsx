@@ -10,19 +10,6 @@ import { useFilterOptions } from "@/lib/hooks/use-filter-options";
 import type { ProjectStatus } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-/**
- * English role labels for search filters
- * Search is English-only - no i18n
- */
-const ROLE_LABELS: Record<string, string> = {
-  developer: "Developer",
-  designer: "Designer",
-  marketer: "Marketer",
-  productManager: "Product Manager",
-  cofounder: "Co-founder",
-  investor: "Investor",
-  advisor: "Advisor",
-};
 
 /**
  * English status labels for search filters
@@ -76,13 +63,10 @@ export function Filters({
         : STATUS_LABELS[status.value] || status.value,
   }));
 
-  // Build role options with counts (English only)
+  // Build role options with counts (user-defined roles)
   const roleOptions: MultiSelectOption[] = roles.map((role) => ({
     value: role.value,
-    label:
-      role.count > 0
-        ? `${ROLE_LABELS[role.value] || role.value} (${role.count})`
-        : ROLE_LABELS[role.value] || role.value,
+    label: role.count > 0 ? `${role.value} (${role.count})` : role.value,
   }));
 
   const toggleTag = (tag: string) => {

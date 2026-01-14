@@ -28,6 +28,13 @@ interface FiltersResponse {
  * All values are returned in English (no i18n for search filters)
  */
 export async function GET() {
+  // Default empty response
+  const emptyResponse: FiltersResponse = {
+    tags: [],
+    roles: [],
+    statuses: [],
+  };
+
   try {
     // Fetch all data in parallel for better performance
     const [tagsResult, rolesResult, statusesResult] = await Promise.all([
@@ -38,7 +45,7 @@ export async function GET() {
         GROUP BY tag
         ORDER BY count DESC
         LIMIT 20
-      `,
+      `.catch(() => [] as { tag: string; count: bigint }[]),
 
       // Get all roles that projects are looking for
       db.$queryRaw<{ role: string; count: bigint }[]>`
@@ -46,30 +53,30 @@ export async function GET() {
         FROM "projects"
         GROUP BY role
         ORDER BY count DESC
-      `,
+      `.catch(() => [] as { role: string; count: bigint }[]),
 
       // Get status counts
       db.project.groupBy({
         by: ["status"],
         _count: { status: true },
         orderBy: { _count: { status: "desc" } },
-      }),
+      }).catch(() => [] as { status: string; _count: { status: number } }[]),
     ]);
 
-    // Transform tags result (bigint to number)
-    const tags: FilterOption[] = tagsResult.map((row) => ({
+    // Transform tags result (bigint to number) - handle null/empty
+    const tags: FilterOption[] = (tagsResult || []).map((row) => ({
       value: row.tag,
       count: Number(row.count),
     }));
 
-    // Transform roles result (bigint to number)
-    const roles: FilterOption[] = rolesResult.map((row) => ({
+    // Transform roles result (bigint to number) - handle null/empty
+    const roles: FilterOption[] = (rolesResult || []).map((row) => ({
       value: row.role,
       count: Number(row.count),
     }));
 
-    // Transform statuses result
-    const statuses: FilterOption[] = statusesResult.map((row) => ({
+    // Transform statuses result - handle null/empty
+    const statuses: FilterOption[] = (statusesResult || []).map((row) => ({
       value: row.status,
       count: row._count.status,
     }));
@@ -88,9 +95,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching filter options:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch filter options" },
-      { status: 500 }
-    );
+    // Always return a valid response
+    return NextResponse.json(emptyResponse, { status: 200 });
   }
 }
