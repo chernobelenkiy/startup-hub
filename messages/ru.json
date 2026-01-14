@@ -69,6 +69,7 @@
     "tooManyAttempts": "Слишком много попыток входа. Попробуйте позже."
   },
   "project": {
+    "back": "Назад",
     "title": "Название",
     "description": "Описание",
     "shortDescription": "Краткое описание",

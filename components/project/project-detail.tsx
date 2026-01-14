@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Card,
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { LikeButton } from "./like-button";
 import {
+  ArrowLeft,
   ExternalLink,
   Calendar,
   Users,
@@ -73,6 +75,7 @@ const PREDEFINED_ROLES = ["developer", "designer", "marketer", "productManager",
 type PredefinedRole = typeof PREDEFINED_ROLES[number];
 
 export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) {
+  const router = useRouter();
   const t = useTranslations("project");
   const tRoles = useTranslations("roles");
   const siteLocale = useLocale();
@@ -111,6 +114,17 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
 
   return (
     <div className="space-y-8">
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => router.back()}
+        className="gap-2 -ml-2"
+      >
+        <ArrowLeft className="size-4" />
+        {t("back")}
+      </Button>
+
       {/* Hero Section */}
       <div className="space-y-6">
         {project.screenshotUrl && (
@@ -141,7 +155,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                         className={`px-2 py-0.5 text-xs rounded transition-colors ${
                           selectedLanguage === lang
                             ? "bg-primary text-primary-foreground font-medium"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                         }`}
                       >
                         {LANGUAGE_LABELS[lang]}

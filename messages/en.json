@@ -69,6 +69,7 @@
     "tooManyAttempts": "Too many login attempts. Please try again later."
   },
   "project": {
+    "back": "Back",
     "title": "Title",
     "description": "Description",
     "shortDescription": "Short description",
