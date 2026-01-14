@@ -209,12 +209,12 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
           <div className="flex items-center gap-2">
             <Calendar className="size-5 text-primary" />
             <span className="text-muted-foreground">{t("estimatedLaunch")}:</span>
-            <span className="font-medium">
+            <span className="font-medium" suppressHydrationWarning>
               {new Date(project.estimatedLaunch).toLocaleDateString()}
             </span>
           </div>
         )}
-        <div className="ml-auto text-sm text-muted-foreground">
+        <div className="ml-auto text-sm text-muted-foreground" suppressHydrationWarning>
           {t("createdAt")}: {new Date(project.createdAt).toLocaleDateString()}
         </div>
       </div>

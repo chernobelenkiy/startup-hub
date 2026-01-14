@@ -35,8 +35,8 @@ export const translationFieldsSchema = z.object({
   pitch: z
     .string()
     .min(20, "Pitch must be at least 20 characters")
-    .max(5000, "Pitch must be at most 5000 characters"),
-  traction: z.string().max(5000).optional().nullable(),
+    .max(10000, "Pitch must be at most 10000 characters"),
+  traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
 
@@ -44,8 +44,8 @@ export const translationFieldsSchema = z.object({
 export const optionalTranslationFieldsSchema = z.object({
   title: z.string().max(100).optional(),
   shortDescription: z.string().max(280).optional(),
-  pitch: z.string().max(5000).optional(),
-  traction: z.string().max(5000).optional().nullable(),
+  pitch: z.string().max(10000).optional(),
+  traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
 
@@ -76,12 +76,12 @@ export const createProjectSchema = z.object({
   pitch: z
     .string()
     .min(20, "Pitch must be at least 20 characters")
-    .max(5000, "Pitch must be at most 5000 characters"),
+    .max(10000, "Pitch must be at most 10000 characters"),
   websiteUrl: z.string().url("Must be a valid URL").optional().nullable(),
   screenshotUrl: z.string().url("Must be a valid URL").optional().nullable(),
   status: projectStatusSchema.default("IDEA"),
   estimatedLaunch: z.coerce.date().optional().nullable(),
-  traction: z.string().max(5000).optional().nullable(),
+  traction: z.string().max(10000).optional().nullable(),
   needsInvestment: z.boolean().default(false),
   investmentDetails: z.string().max(1000).optional().nullable(),
   teamMembers: z.array(teamMemberSchema).default([]),
@@ -110,8 +110,8 @@ export const updateTranslationSchema = z.object({
   language: languageSchema,
   title: z.string().min(3).max(100).optional(),
   shortDescription: z.string().min(10).max(280).optional(),
-  pitch: z.string().min(20).max(5000).optional(),
-  traction: z.string().max(5000).optional().nullable(),
+  pitch: z.string().min(20).max(10000).optional(),
+  traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
 

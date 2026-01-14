@@ -24,16 +24,6 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/translations/
 
 const PROJECT_STATUSES: ProjectStatus[] = ["IDEA", "MVP", "BETA", "LAUNCHED", "PAUSED"];
 
-const LOOKING_FOR_ROLES = [
-  "developer",
-  "designer",
-  "marketer",
-  "productManager",
-  "cofounder",
-  "investor",
-  "advisor",
-] as const;
-
 /** Translation fields for a single language */
 interface TranslationData {
   title: string;
@@ -80,9 +70,7 @@ export function ProjectForm({
   const t = useTranslations("project");
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("projectStatus");
-  const tRoles = useTranslations("roles");
   const tErrors = useTranslations("errors");
-  const tLocale = useTranslations("locale");
   const tTranslations = useTranslations("translations");
 
   // Active language tab
@@ -211,14 +199,6 @@ export function ProjectForm({
     setTeamMembers(teamMembers.filter((_, i) => i !== index));
   };
 
-  const toggleRole = (role: string) => {
-    if (lookingFor.includes(role)) {
-      setLookingFor(lookingFor.filter((r) => r !== role));
-    } else {
-      setLookingFor([...lookingFor, role]);
-    }
-  };
-
   const validateTranslation = (lang: SupportedLanguage): Record<string, string> => {
     const trans = translations[lang];
     const langErrors: Record<string, string> = {};
@@ -240,8 +220,8 @@ export function ProjectForm({
       if (!trans.pitch.trim() || trans.pitch.length < 20) {
         langErrors.pitch = tErrors("minLength", { min: 20 });
       }
-      if (trans.pitch.length > 5000) {
-        langErrors.pitch = tErrors("maxLength", { max: 5000 });
+      if (trans.pitch.length > 10000) {
+        langErrors.pitch = tErrors("maxLength", { max: 10000 });
       }
     }
 
@@ -250,9 +230,6 @@ export function ProjectForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("[ProjectForm] handleSubmit called");
-    console.log("[ProjectForm] Current translations:", translations);
-    console.log("[ProjectForm] Completed languages:", completedLanguages);
 
     // Validate all translations
     const newErrors: Record<string, Record<string, string>> = {
@@ -263,7 +240,6 @@ export function ProjectForm({
     // Check that at least one complete translation exists
     const hasComplete = completedLanguages.length > 0;
     if (!hasComplete) {
-      console.log("[ProjectForm] No complete translation found");
       // Add error to the active language if none is complete
       newErrors[activeLanguage] = {
         ...newErrors[activeLanguage],
@@ -280,9 +256,6 @@ export function ProjectForm({
     const hasErrors = Object.values(newErrors).some(
       (langErrors) => Object.keys(langErrors).length > 0
     );
-
-    console.log("[ProjectForm] Validation errors:", newErrors);
-    console.log("[ProjectForm] Has errors:", hasErrors);
 
     if (hasErrors) {
       setErrors(newErrors);
@@ -398,7 +371,7 @@ export function ProjectForm({
                 ? "Explain your project in more detail. What problem does it solve? What makes it unique?"
                 : "Расскажите подробнее о вашем проекте. Какую проблему он решает? Что делает его уникальным?"
             }
-            maxLength={5000}
+            maxLength={10000}
             className="min-h-[120px]"
             aria-invalid={!!langErrors.pitch}
           />
@@ -406,7 +379,7 @@ export function ProjectForm({
             {langErrors.pitch && (
               <span className="text-destructive">{langErrors.pitch}</span>
             )}
-            <span className="text-muted-foreground ml-auto">{trans.pitch.length}/5000</span>
+            <span className="text-muted-foreground ml-auto">{trans.pitch.length}/10000</span>
           </div>
         </div>
 
@@ -418,12 +391,12 @@ export function ProjectForm({
             value={trans.traction}
             onChange={(e) => updateTranslation(lang, "traction", e.target.value)}
             placeholder={t("tractionPlaceholder")}
-            maxLength={5000}
+            maxLength={10000}
             className="min-h-[100px]"
           />
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">{t("tractionHint")}</span>
-            <span className="text-muted-foreground">{trans.traction.length}/5000</span>
+            <span className="text-muted-foreground">{trans.traction.length}/10000</span>
           </div>
         </div>
 
@@ -536,19 +509,15 @@ export function ProjectForm({
         {/* Looking For */}
         <div className="space-y-2">
           <Label>{t("lookingFor")}</Label>
-          <div className="flex flex-wrap gap-2">
-            {LOOKING_FOR_ROLES.map((role) => (
-              <Button
-                key={role}
-                type="button"
-                variant={lookingFor.includes(role) ? "default" : "outline"}
-                size="sm"
-                onClick={() => toggleRole(role)}
-              >
-                {tRoles(role)}
-              </Button>
-            ))}
-          </div>
+          <TagInput
+            value={lookingFor}
+            onChange={setLookingFor}
+            placeholder={t("lookingForPlaceholder")}
+            maxTags={10}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("lookingForHint")}
+          </p>
         </div>
 
         {/* Investment */}

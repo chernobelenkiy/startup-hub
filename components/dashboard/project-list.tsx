@@ -138,7 +138,7 @@ export function ProjectList({
                 <Heart className="size-3" />
                 <span>{project.likesCount}</span>
               </div>
-              <time dateTime={project.updatedAt}>
+              <time dateTime={project.updatedAt} suppressHydrationWarning>
                 {new Date(project.updatedAt).toLocaleDateString()}
               </time>
             </div>

@@ -86,7 +86,7 @@ export function TokenTable({ tokens, onRevoke, isLoading }: TokenTableProps) {
         "inline-flex items-center gap-1",
         expired && "text-destructive",
         expiringSoon && !expired && "text-amber-500"
-      )}>
+      )} suppressHydrationWarning>
         {(expired || expiringSoon) && (
           <AlertTriangle className="size-3" />
         )}
@@ -191,7 +191,7 @@ export function TokenTable({ tokens, onRevoke, isLoading }: TokenTableProps) {
                     </Badge>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground" suppressHydrationWarning>
                       {formatDate(token.createdAt)}
                     </span>
                   </td>
@@ -201,7 +201,7 @@ export function TokenTable({ tokens, onRevoke, isLoading }: TokenTableProps) {
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground" suppressHydrationWarning>
                       {formatDate(token.lastUsedAt)}
                     </span>
                   </td>

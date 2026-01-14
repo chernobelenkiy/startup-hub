@@ -79,6 +79,8 @@
     "tags": "Tags",
     "team": "Team",
     "lookingFor": "Looking for",
+    "lookingForPlaceholder": "e.g. Backend Developer, UX Designer, Investor...",
+    "lookingForHint": "Add roles or specialists you're looking for to join your team",
     "estimatedLaunch": "Estimated launch",
     "traction": "Traction",
     "tractionPlaceholder": "Share your traction: user growth, revenue, partnerships, milestones achieved...",
