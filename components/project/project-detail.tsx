@@ -127,21 +127,10 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
 
       {/* Hero Section */}
       <div className="space-y-6">
-        {project.screenshotUrl && (
-          <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
-            <img
-              src={project.screenshotUrl}
-              alt={`Screenshot of ${resolvedContent.title}`}
-              loading="lazy"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        <div className="flex items-start justify-between gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{resolvedContent.title}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold">{resolvedContent.title}</h1>
               <ProjectStatusBadge status={project.status} />
               {/* Language selector */}
               {availableLanguages.length > 1 && (
@@ -165,20 +154,20 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                 </div>
               )}
             </div>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground">
               {resolvedContent.shortDescription}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             {isOwner && onEdit && (
-              <Button variant="outline" onClick={onEdit}>
+              <Button variant="outline" size="sm" onClick={onEdit}>
                 <Pencil className="size-4 mr-2" />
                 {t("editProject")}
               </Button>
             )}
             {project.websiteUrl && (
-              <Button asChild>
+              <Button size="sm" asChild>
                 <a
                   href={project.websiteUrl}
                   target="_blank"
@@ -192,6 +181,17 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
             )}
           </div>
         </div>
+
+        {project.screenshotUrl && (
+          <div className="relative max-w-2xl rounded-lg overflow-hidden border border-border">
+            <img
+              src={project.screenshotUrl}
+              alt={`Screenshot of ${resolvedContent.title}`}
+              loading="lazy"
+              className="w-full h-auto object-contain"
+            />
+          </div>
+        )}
       </div>
 
       {/* Stats Row */}
