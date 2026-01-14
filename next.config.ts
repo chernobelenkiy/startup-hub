@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Security headers
+  // Security and cache headers
   async headers() {
     return [
       {
@@ -39,6 +39,26 @@ const nextConfig: NextConfig = {
           {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+      // Prevent caching of auth routes
+      {
+        source: "/api/auth/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0",
+          },
+        ],
+      },
+      // Prevent caching of dashboard pages
+      {
+        source: "/:locale/dashboard/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
           },
         ],
       },
