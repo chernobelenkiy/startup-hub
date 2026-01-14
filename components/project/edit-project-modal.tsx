@@ -97,9 +97,11 @@ export function EditProjectModal({
   };
 
   const handleSubmit = async (data: CreateProjectWithTranslationsInput & { screenshotUrl?: string | null }) => {
+    console.log("[EditProjectModal] handleSubmit called with data:", data);
     setIsLoading(true);
 
     try {
+      console.log("[EditProjectModal] Sending PUT request to /api/projects/" + project.id);
       const response = await fetch(`/api/projects/${project.id}`, {
         method: "PUT",
         headers: {
@@ -108,15 +110,18 @@ export function EditProjectModal({
         body: JSON.stringify(data),
       });
 
+      console.log("[EditProjectModal] Response status:", response.status);
       if (!response.ok) {
         const errorData = await response.json();
+        console.log("[EditProjectModal] Error response:", errorData);
         throw new Error(errorData.error || "Failed to update project");
       }
 
+      console.log("[EditProjectModal] Update successful");
       toast.success(t("projectUpdated"));
       onSuccess();
     } catch (error) {
-      console.error("Update project error:", error);
+      console.error("[EditProjectModal] Update project error:", error);
       toast.error(tErrors("serverError"));
     } finally {
       setIsLoading(false);
@@ -162,7 +167,6 @@ export function EditProjectModal({
             }}
             onSubmit={handleSubmit}
             isLoading={isLoading}
-            submitLabel={t("editProject")}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-12 gap-4">

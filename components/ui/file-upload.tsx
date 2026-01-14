@@ -68,8 +68,10 @@ export function FileUpload({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("[FileUpload] handleFileSelect triggered", e.target.files);
     const file = e.target.files?.[0];
     if (file) {
+      console.log("[FileUpload] File selected:", file.name, file.type, file.size);
       await uploadFile(file);
     }
     // Reset input value to allow re-selecting the same file
@@ -79,40 +81,47 @@ export function FileUpload({
   };
 
   const uploadFile = async (file: File) => {
+    console.log("[FileUpload] uploadFile called", { name: file.name, type: file.type, size: file.size });
     setError(null);
 
     // Validate file type against allowed MIME types
     if (!ALLOWED_MIME_TYPES.includes(file.type as typeof ALLOWED_MIME_TYPES[number])) {
+      console.log("[FileUpload] Invalid file type:", file.type);
       setError(`Invalid file type. Allowed types: ${ALLOWED_TYPE_NAMES}`);
       return;
     }
 
     // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
+      console.log("[FileUpload] File too large:", file.size);
       setError(`File too large. Maximum size is ${maxSize}MB.`);
       return;
     }
 
+    console.log("[FileUpload] Validation passed, starting upload...");
     setIsUploading(true);
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("[FileUpload] Sending request to /api/upload");
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
+      console.log("[FileUpload] Response status:", response.status);
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Upload failed");
       }
 
       const { url } = await response.json();
+      console.log("[FileUpload] Upload success:", url);
       onChange(url);
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error("[FileUpload] Upload error:", err);
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setIsUploading(false);
@@ -161,7 +170,12 @@ export function FileUpload({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={() => {
+        console.log("[FileUpload] Click handler triggered, disabled:", disabled);
+        if (!disabled) {
+          inputRef.current?.click();
+        }
+      }}
     >
       <input
         ref={inputRef}

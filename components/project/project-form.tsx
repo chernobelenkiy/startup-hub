@@ -111,8 +111,8 @@ export function ProjectForm({
       }
     }
 
-    // Fallback: if no translations but legacy fields exist, use those
-    if (!initialData?.translations && initialData?.title) {
+    // Fallback: if no translations (or empty array) but legacy fields exist, use those
+    if ((!initialData?.translations || initialData.translations.length === 0) && initialData?.title) {
       const lang = (initialData.language || "ru") as SupportedLanguage;
       result[lang] = {
         title: initialData.title || "",
@@ -250,6 +250,9 @@ export function ProjectForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[ProjectForm] handleSubmit called");
+    console.log("[ProjectForm] Current translations:", translations);
+    console.log("[ProjectForm] Completed languages:", completedLanguages);
 
     // Validate all translations
     const newErrors: Record<string, Record<string, string>> = {
@@ -260,6 +263,7 @@ export function ProjectForm({
     // Check that at least one complete translation exists
     const hasComplete = completedLanguages.length > 0;
     if (!hasComplete) {
+      console.log("[ProjectForm] No complete translation found");
       // Add error to the active language if none is complete
       newErrors[activeLanguage] = {
         ...newErrors[activeLanguage],
@@ -276,6 +280,9 @@ export function ProjectForm({
     const hasErrors = Object.values(newErrors).some(
       (langErrors) => Object.keys(langErrors).length > 0
     );
+
+    console.log("[ProjectForm] Validation errors:", newErrors);
+    console.log("[ProjectForm] Has errors:", hasErrors);
 
     if (hasErrors) {
       setErrors(newErrors);
