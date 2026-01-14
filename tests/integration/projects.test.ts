@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createMockRequest, createMockProject, createMockSession } from "../utils/helpers";
+import {
+  createMockRequest,
+  createMockProject,
+  createMockSession,
+  createMockProjectWithTranslations,
+} from "../utils/helpers";
 
 /**
  * Integration Tests for Projects API Routes
@@ -52,14 +57,17 @@ describe("Projects API Routes", () => {
   describe("GET /api/projects", () => {
     // TC-PROJ-040: Dashboard shows only user's own projects
     it("returns only the authenticated user's projects", async () => {
+      // Use createMockProjectWithTranslations since GET now includes translations
       const userProjects = [
-        createMockProject({ id: "project-1", title: "Project 1", ownerId: mockSession.user.id }),
-        createMockProject({ id: "project-2", title: "Project 2", ownerId: mockSession.user.id }),
+        createMockProjectWithTranslations(["ru"], { id: "project-1", title: "Project 1", ownerId: mockSession.user.id }),
+        createMockProjectWithTranslations(["ru"], { id: "project-2", title: "Project 2", ownerId: mockSession.user.id }),
       ];
 
       mockDb.project.findMany.mockResolvedValue(userProjects as never);
 
-      const response = await GET();
+      // GET now requires a request object for Accept-Language header
+      const request = createMockRequest("GET");
+      const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -67,6 +75,7 @@ describe("Projects API Routes", () => {
       expect(mockDb.project.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { ownerId: mockSession.user.id },
+          include: { translations: true },
         })
       );
     });
@@ -74,7 +83,8 @@ describe("Projects API Routes", () => {
     it("returns 401 when user is not authenticated", async () => {
       mockAuth.mockResolvedValueOnce(null);
 
-      const response = await GET();
+      const request = createMockRequest("GET");
+      const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -84,7 +94,8 @@ describe("Projects API Routes", () => {
     it("returns empty array when user has no projects", async () => {
       mockDb.project.findMany.mockResolvedValue([]);
 
-      const response = await GET();
+      const request = createMockRequest("GET");
+      const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -94,7 +105,8 @@ describe("Projects API Routes", () => {
     it("handles database errors gracefully", async () => {
       mockDb.project.findMany.mockRejectedValue(new Error("DB Error"));
 
-      const response = await GET();
+      const request = createMockRequest("GET");
+      const response = await GET(request);
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -112,7 +124,8 @@ describe("Projects API Routes", () => {
 
     // TC-PROJ-001: Successfully create project with all required fields
     it("creates a project with valid data", async () => {
-      const createdProject = createMockProject({
+      // Include translations in mock since POST now creates with translations
+      const createdProject = createMockProjectWithTranslations(["ru"], {
         ...validProjectData,
         slug: "my-new-startup-abc123",
         ownerId: mockSession.user.id,
@@ -180,7 +193,7 @@ describe("Projects API Routes", () => {
     });
 
     it("generates slug from title", async () => {
-      const createdProject = createMockProject({
+      const createdProject = createMockProjectWithTranslations(["ru"], {
         ...validProjectData,
         slug: "my-new-startup-abc123",
       });
@@ -209,7 +222,7 @@ describe("Projects API Routes", () => {
         investmentDetails: "Looking for $100K seed",
       };
 
-      const createdProject = createMockProject(fullProjectData);
+      const createdProject = createMockProjectWithTranslations(["ru"], fullProjectData);
       mockDb.project.create.mockResolvedValue(createdProject as never);
 
       const request = createMockRequest("POST", fullProjectData);
@@ -234,7 +247,7 @@ describe("Projects API Routes", () => {
         investmentDetails: "This should be cleared",
       };
 
-      const createdProject = createMockProject({
+      const createdProject = createMockProjectWithTranslations(["ru"], {
         ...projectData,
         investmentDetails: null,
       });

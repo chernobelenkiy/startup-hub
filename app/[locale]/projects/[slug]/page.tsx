@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ProjectDetailClient } from "./project-detail-client";
+import { resolveProjectTranslation, type ProjectWithTranslations } from "@/lib/translations/project-translations";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string; locale: string }>;
@@ -14,14 +15,12 @@ export const revalidate = 60;
 export async function generateMetadata({
   params,
 }: ProjectPageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, locale } = await params;
 
   const project = await db.project.findUnique({
     where: { slug },
-    select: {
-      title: true,
-      shortDescription: true,
-      screenshotUrl: true,
+    include: {
+      translations: true,
     },
   });
 
@@ -31,18 +30,24 @@ export async function generateMetadata({
     };
   }
 
+  // Resolve translation for metadata based on locale
+  const resolved = resolveProjectTranslation(
+    project as unknown as ProjectWithTranslations,
+    locale
+  );
+
   return {
-    title: project.title,
-    description: project.shortDescription,
+    title: resolved.title,
+    description: resolved.shortDescription,
     openGraph: {
-      title: project.title,
-      description: project.shortDescription,
+      title: resolved.title,
+      description: resolved.shortDescription,
       images: project.screenshotUrl ? [project.screenshotUrl] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: project.title,
-      description: project.shortDescription,
+      title: resolved.title,
+      description: resolved.shortDescription,
       images: project.screenshotUrl ? [project.screenshotUrl] : [],
     },
   };
@@ -64,13 +69,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           avatarUrl: true,
         },
       },
+      translations: true,
       // Include likes for the current user to determine isLiked
       likes: userId
         ? {
             where: { userId },
             select: { userId: true },
           }
-        : false,
+        : undefined,
     },
   });
 
@@ -79,9 +85,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   const isOwner = userId === project.ownerId;
-  const isLiked = userId ? (project.likes as { userId: string }[])?.length > 0 : false;
+  const isLiked = Boolean(userId && project.likes?.length);
 
-  // Serialize for client component
+  // Serialize for client component - include translations
   const serializedProject = {
     id: project.id,
     slug: project.slug,
@@ -104,6 +110,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
     owner: project.owner,
+    translations: project.translations.map((t) => ({
+      id: t.id,
+      projectId: t.projectId,
+      language: t.language,
+      title: t.title,
+      shortDescription: t.shortDescription,
+      pitch: t.pitch,
+      traction: t.traction,
+      investmentDetails: t.investmentDetails,
+    })),
   };
 
   return (

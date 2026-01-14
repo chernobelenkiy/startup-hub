@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { updateProjectSchema } from "@/lib/validations/project";
+import {
+  updateProjectSchema,
+  updateTranslationSchema,
+  translationsSchema,
+} from "@/lib/validations/project";
+import { resolveProjectTranslation, type SupportedLanguage } from "@/lib/translations/project-translations";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -9,7 +14,7 @@ interface RouteParams {
 
 /**
  * GET /api/projects/[id]
- * Get a single project by ID (ownership check)
+ * Get a single project by ID with all translations (ownership check)
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             avatarUrl: true,
           },
         },
+        translations: true,
       },
     });
 
@@ -52,6 +58,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Return project with all translations for editing
     return NextResponse.json({ project });
   } catch (error) {
     console.error("Error fetching project:", error);
@@ -64,7 +71,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT /api/projects/[id]
- * Update a project (ownership check)
+ * Update a project with translations support (ownership check)
+ *
+ * Supports two update modes:
+ * 1. Legacy format - updates project fields directly (single language)
+ * 2. Translations format - updates specific translation by language
+ * 3. Full translations format - updates all translations at once
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
@@ -81,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Check if project exists and user owns it
     const existingProject = await db.project.findUnique({
       where: { id },
-      select: { ownerId: true },
+      include: { translations: true },
     });
 
     if (!existingProject) {
@@ -100,7 +112,95 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json();
 
-    // Validate request body
+    // Check if updating with full translations object
+    if (body.translations) {
+      const translationsValidation = translationsSchema.safeParse(body.translations);
+
+      if (!translationsValidation.success) {
+        return NextResponse.json(
+          {
+            error: "Validation failed",
+            details: translationsValidation.error.flatten(),
+          },
+          { status: 400 }
+        );
+      }
+
+      const translations = translationsValidation.data;
+
+      // Update non-translatable fields
+      const projectUpdateData: Record<string, unknown> = {};
+      if (body.websiteUrl !== undefined) projectUpdateData.websiteUrl = body.websiteUrl || null;
+      if (body.screenshotUrl !== undefined) projectUpdateData.screenshotUrl = body.screenshotUrl || null;
+      if (body.status !== undefined) projectUpdateData.status = body.status;
+      if (body.estimatedLaunch !== undefined) projectUpdateData.estimatedLaunch = body.estimatedLaunch || null;
+      if (body.needsInvestment !== undefined) projectUpdateData.needsInvestment = body.needsInvestment;
+      if (body.teamMembers !== undefined) projectUpdateData.teamMembers = body.teamMembers;
+      if (body.lookingFor !== undefined) projectUpdateData.lookingFor = body.lookingFor;
+      if (body.tags !== undefined) projectUpdateData.tags = body.tags;
+
+      // Update legacy fields from primary translation
+      const primaryTranslation = translations.ru || translations.en;
+      if (primaryTranslation?.title) projectUpdateData.title = primaryTranslation.title;
+      if (primaryTranslation?.shortDescription) projectUpdateData.shortDescription = primaryTranslation.shortDescription;
+      if (primaryTranslation?.pitch) projectUpdateData.pitch = primaryTranslation.pitch;
+      if (primaryTranslation?.traction !== undefined) projectUpdateData.traction = primaryTranslation.traction;
+      if (primaryTranslation?.investmentDetails !== undefined) {
+        projectUpdateData.investmentDetails = body.needsInvestment ? primaryTranslation.investmentDetails : null;
+      }
+
+      // Upsert translations
+      const translationPromises: Promise<unknown>[] = [];
+
+      for (const lang of ["en", "ru"] as SupportedLanguage[]) {
+        const translation = translations[lang];
+        if (translation?.title && translation?.shortDescription && translation?.pitch) {
+          translationPromises.push(
+            db.projectTranslation.upsert({
+              where: {
+                projectId_language: { projectId: id, language: lang },
+              },
+              update: {
+                title: translation.title,
+                shortDescription: translation.shortDescription,
+                pitch: translation.pitch,
+                traction: translation.traction ?? null,
+                investmentDetails: body.needsInvestment ? translation.investmentDetails ?? null : null,
+              },
+              create: {
+                projectId: id,
+                language: lang,
+                title: translation.title,
+                shortDescription: translation.shortDescription,
+                pitch: translation.pitch,
+                traction: translation.traction ?? null,
+                investmentDetails: body.needsInvestment ? translation.investmentDetails ?? null : null,
+              },
+            })
+          );
+        }
+      }
+
+      await Promise.all([
+        db.project.update({ where: { id }, data: projectUpdateData }),
+        ...translationPromises,
+      ]);
+
+      // Fetch updated project
+      const updatedProject = await db.project.findUnique({
+        where: { id },
+        include: {
+          translations: true,
+          owner: {
+            select: { id: true, name: true, email: true, avatarUrl: true },
+          },
+        },
+      });
+
+      return NextResponse.json({ project: updatedProject });
+    }
+
+    // Legacy format - single language update
     const validationResult = updateProjectSchema.safeParse(body);
 
     if (!validationResult.success) {
@@ -115,7 +215,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const data = validationResult.data;
 
-    // Build update data object, only including provided fields
+    // Build update data object
     const updateData: Record<string, unknown> = {};
 
     if (data.title !== undefined) updateData.title = data.title;
@@ -135,34 +235,75 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.language !== undefined) updateData.language = data.language;
     if (data.traction !== undefined) updateData.traction = data.traction || null;
 
-    // Update project
-    const project = await db.project.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        shortDescription: true,
-        pitch: true,
-        websiteUrl: true,
-        screenshotUrl: true,
-        status: true,
-        estimatedLaunch: true,
-        needsInvestment: true,
-        investmentDetails: true,
-        traction: true,
-        teamMembers: true,
-        lookingFor: true,
-        tags: true,
-        language: true,
-        likesCount: true,
-        createdAt: true,
-        updatedAt: true,
+    // Determine the target language for translation update
+    const targetLanguage = (data.language || existingProject.language) as SupportedLanguage;
+
+    // Build translation update data
+    const translationUpdateData: Record<string, unknown> = {};
+    if (data.title !== undefined) translationUpdateData.title = data.title;
+    if (data.shortDescription !== undefined) translationUpdateData.shortDescription = data.shortDescription;
+    if (data.pitch !== undefined) translationUpdateData.pitch = data.pitch;
+    if (data.traction !== undefined) translationUpdateData.traction = data.traction || null;
+    if (data.investmentDetails !== undefined) {
+      translationUpdateData.investmentDetails = data.needsInvestment ? data.investmentDetails : null;
+    }
+
+    // Update project and translation
+    const [project] = await Promise.all([
+      db.project.update({
+        where: { id },
+        data: updateData,
+        include: {
+          translations: true,
+        },
+      }),
+      // Upsert the translation for the specified language
+      Object.keys(translationUpdateData).length > 0
+        ? db.projectTranslation.upsert({
+            where: {
+              projectId_language: { projectId: id, language: targetLanguage },
+            },
+            update: translationUpdateData,
+            create: {
+              projectId: id,
+              language: targetLanguage,
+              title: data.title || existingProject.title || "",
+              shortDescription: data.shortDescription || existingProject.shortDescription || "",
+              pitch: data.pitch || existingProject.pitch || "",
+              traction: data.traction ?? existingProject.traction,
+              investmentDetails: data.investmentDetails ?? existingProject.investmentDetails,
+            },
+          })
+        : Promise.resolve(),
+    ]);
+
+    // Resolve with the updated translation
+    const resolved = resolveProjectTranslation(project, targetLanguage);
+
+    return NextResponse.json({
+      project: {
+        id: resolved.id,
+        slug: resolved.slug,
+        title: resolved.title,
+        shortDescription: resolved.shortDescription,
+        pitch: resolved.pitch,
+        websiteUrl: project.websiteUrl,
+        screenshotUrl: project.screenshotUrl,
+        status: project.status,
+        estimatedLaunch: project.estimatedLaunch,
+        needsInvestment: project.needsInvestment,
+        investmentDetails: resolved.investmentDetails,
+        traction: resolved.traction,
+        teamMembers: project.teamMembers,
+        lookingFor: project.lookingFor,
+        tags: project.tags,
+        language: resolved.language,
+        likesCount: project.likesCount,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        translations: project.translations,
       },
     });
-
-    return NextResponse.json({ project });
   } catch (error) {
     console.error("Error updating project:", error);
     return NextResponse.json(

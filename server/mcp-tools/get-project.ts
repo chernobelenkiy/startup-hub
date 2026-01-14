@@ -23,7 +23,8 @@ export async function getProjectHandler(
       include: {
         owner: {
           select: { id: true, name: true, image: true }
-        }
+        },
+        translations: true
       }
     });
 
@@ -31,7 +32,54 @@ export async function getProjectHandler(
       return mcpError("Project not found");
     }
 
-    return mcpSuccess({ project });
+    // Format translations as a more usable object
+    const translationsByLanguage: Record<string, {
+      title: string;
+      shortDescription: string;
+      pitch: string;
+      traction: string | null;
+      investmentDetails: string | null;
+    }> = {};
+
+    for (const translation of project.translations) {
+      translationsByLanguage[translation.language] = {
+        title: translation.title,
+        shortDescription: translation.shortDescription,
+        pitch: translation.pitch,
+        traction: translation.traction,
+        investmentDetails: translation.investmentDetails,
+      };
+    }
+
+    return mcpSuccess({
+      project: {
+        id: project.id,
+        slug: project.slug,
+        // Non-translatable fields
+        screenshotUrl: project.screenshotUrl,
+        websiteUrl: project.websiteUrl,
+        status: project.status,
+        estimatedLaunch: project.estimatedLaunch,
+        needsInvestment: project.needsInvestment,
+        teamMembers: project.teamMembers,
+        lookingFor: project.lookingFor,
+        tags: project.tags,
+        likesCount: project.likesCount,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        owner: project.owner,
+        // Translations - all available languages
+        translations: translationsByLanguage,
+        availableLanguages: project.translations.map(t => t.language),
+        // Legacy fields for backward compatibility (from primary language)
+        title: project.title,
+        shortDescription: project.shortDescription,
+        pitch: project.pitch,
+        traction: project.traction,
+        investmentDetails: project.investmentDetails,
+        language: project.language,
+      }
+    });
   } catch (error) {
     console.error("[MCP] get_project error:", error);
     return mcpError("Failed to get project");

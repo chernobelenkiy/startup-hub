@@ -17,8 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import type { CreateProjectInput, TeamMember } from "@/lib/validations/project";
-import type { ProjectStatus } from "@/lib/db";
+import { LanguageTabs, LanguageTabPanel } from "./language-tabs";
+import type { CreateProjectInput, TeamMember, CreateProjectWithTranslationsInput } from "@/lib/validations/project";
+import type { ProjectStatus, ProjectTranslation } from "@/lib/db";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/translations/project-translations";
 
 const PROJECT_STATUSES: ProjectStatus[] = ["IDEA", "MVP", "BETA", "LAUNCHED", "PAUSED"];
 
@@ -32,12 +34,42 @@ const LOOKING_FOR_ROLES = [
   "advisor",
 ] as const;
 
+/** Translation fields for a single language */
+interface TranslationData {
+  title: string;
+  shortDescription: string;
+  pitch: string;
+  traction: string;
+  investmentDetails: string;
+}
+
+/** Initial data can include translations array from API */
+interface ProjectFormInitialData extends Partial<CreateProjectInput> {
+  screenshotUrl?: string | null;
+  translations?: Array<{
+    language: string;
+    title: string;
+    shortDescription: string;
+    pitch: string;
+    traction: string | null;
+    investmentDetails: string | null;
+  }>;
+}
+
 interface ProjectFormProps {
-  initialData?: Partial<CreateProjectInput> & { screenshotUrl?: string | null };
-  onSubmit: (data: CreateProjectInput & { screenshotUrl?: string | null }) => Promise<void>;
+  initialData?: ProjectFormInitialData;
+  onSubmit: (data: CreateProjectWithTranslationsInput & { screenshotUrl?: string | null }) => Promise<void>;
   isLoading?: boolean;
   submitLabel?: string;
 }
+
+const emptyTranslation: TranslationData = {
+  title: "",
+  shortDescription: "",
+  pitch: "",
+  traction: "",
+  investmentDetails: "",
+};
 
 export function ProjectForm({
   initialData,
@@ -50,13 +82,56 @@ export function ProjectForm({
   const tStatus = useTranslations("projectStatus");
   const tRoles = useTranslations("roles");
   const tErrors = useTranslations("errors");
+  const tLocale = useTranslations("locale");
+  const tTranslations = useTranslations("translations");
 
-  // Form state
-  const [title, setTitle] = React.useState(initialData?.title || "");
-  const [shortDescription, setShortDescription] = React.useState(
-    initialData?.shortDescription || ""
+  // Active language tab
+  const [activeLanguage, setActiveLanguage] = React.useState<SupportedLanguage>("ru");
+
+  // Build initial translations from initialData
+  const buildInitialTranslations = React.useCallback((): Record<SupportedLanguage, TranslationData> => {
+    const result: Record<SupportedLanguage, TranslationData> = {
+      en: { ...emptyTranslation },
+      ru: { ...emptyTranslation },
+    };
+
+    // First, try to populate from translations array
+    if (initialData?.translations) {
+      for (const trans of initialData.translations) {
+        const lang = trans.language as SupportedLanguage;
+        if (SUPPORTED_LANGUAGES.includes(lang)) {
+          result[lang] = {
+            title: trans.title || "",
+            shortDescription: trans.shortDescription || "",
+            pitch: trans.pitch || "",
+            traction: trans.traction || "",
+            investmentDetails: trans.investmentDetails || "",
+          };
+        }
+      }
+    }
+
+    // Fallback: if no translations but legacy fields exist, use those
+    if (!initialData?.translations && initialData?.title) {
+      const lang = (initialData.language || "ru") as SupportedLanguage;
+      result[lang] = {
+        title: initialData.title || "",
+        shortDescription: initialData.shortDescription || "",
+        pitch: initialData.pitch || "",
+        traction: initialData.traction || "",
+        investmentDetails: initialData.investmentDetails || "",
+      };
+    }
+
+    return result;
+  }, [initialData]);
+
+  // Translations state for each language
+  const [translations, setTranslations] = React.useState<Record<SupportedLanguage, TranslationData>>(
+    buildInitialTranslations
   );
-  const [pitch, setPitch] = React.useState(initialData?.pitch || "");
+
+  // Non-translatable form state
   const [websiteUrl, setWebsiteUrl] = React.useState(initialData?.websiteUrl || "");
   const [status, setStatus] = React.useState<ProjectStatus>(
     initialData?.status || "IDEA"
@@ -68,10 +143,6 @@ export function ProjectForm({
   const [needsInvestment, setNeedsInvestment] = React.useState(
     initialData?.needsInvestment || false
   );
-  const [investmentDetails, setInvestmentDetails] = React.useState(
-    initialData?.investmentDetails || ""
-  );
-  const [traction, setTraction] = React.useState(initialData?.traction || "");
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>(
     (initialData?.teamMembers as TeamMember[]) || []
   );
@@ -83,16 +154,47 @@ export function ProjectForm({
   const [screenshotUrl, setScreenshotUrl] = React.useState<string | null>(
     initialData?.screenshotUrl || null
   );
-  const [language, setLanguage] = React.useState<"en" | "ru">(
-    initialData?.language || "en"
-  );
 
-  // Validation errors
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Validation errors (per language)
+  const [errors, setErrors] = React.useState<Record<string, Record<string, string>>>({
+    en: {},
+    ru: {},
+  });
 
   // Team member form
   const [newMemberName, setNewMemberName] = React.useState("");
   const [newMemberRole, setNewMemberRole] = React.useState("");
+
+  // Update a specific translation field
+  const updateTranslation = (
+    lang: SupportedLanguage,
+    field: keyof TranslationData,
+    value: string
+  ) => {
+    setTranslations((prev) => ({
+      ...prev,
+      [lang]: {
+        ...prev[lang],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Check if a language has complete translation
+  const isLanguageComplete = (lang: SupportedLanguage): boolean => {
+    const trans = translations[lang];
+    return !!(
+      trans.title.trim() &&
+      trans.title.length >= 3 &&
+      trans.shortDescription.trim() &&
+      trans.shortDescription.length >= 10 &&
+      trans.pitch.trim() &&
+      trans.pitch.length >= 20
+    );
+  };
+
+  // Get completed languages
+  const completedLanguages = SUPPORTED_LANGUAGES.filter(isLanguageComplete);
 
   const addTeamMember = () => {
     if (newMemberName.trim() && newMemberRole.trim()) {
@@ -117,331 +219,423 @@ export function ProjectForm({
     }
   };
 
+  const validateTranslation = (lang: SupportedLanguage): Record<string, string> => {
+    const trans = translations[lang];
+    const langErrors: Record<string, string> = {};
+
+    if (trans.title.trim() || trans.shortDescription.trim() || trans.pitch.trim()) {
+      // If any field is filled, validate all required fields
+      if (!trans.title.trim() || trans.title.length < 3) {
+        langErrors.title = tErrors("minLength", { min: 3 });
+      }
+      if (trans.title.length > 100) {
+        langErrors.title = tErrors("maxLength", { max: 100 });
+      }
+      if (!trans.shortDescription.trim() || trans.shortDescription.length < 10) {
+        langErrors.shortDescription = tErrors("minLength", { min: 10 });
+      }
+      if (trans.shortDescription.length > 280) {
+        langErrors.shortDescription = tErrors("maxLength", { max: 280 });
+      }
+      if (!trans.pitch.trim() || trans.pitch.length < 20) {
+        langErrors.pitch = tErrors("minLength", { min: 20 });
+      }
+      if (trans.pitch.length > 5000) {
+        langErrors.pitch = tErrors("maxLength", { max: 5000 });
+      }
+    }
+
+    return langErrors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
 
-    // Client-side validation
-    const newErrors: Record<string, string> = {};
+    // Validate all translations
+    const newErrors: Record<string, Record<string, string>> = {
+      en: validateTranslation("en"),
+      ru: validateTranslation("ru"),
+    };
 
-    if (!title.trim() || title.length < 3) {
-      newErrors.title = tErrors("minLength", { min: 3 });
+    // Check that at least one complete translation exists
+    const hasComplete = completedLanguages.length > 0;
+    if (!hasComplete) {
+      // Add error to the active language if none is complete
+      newErrors[activeLanguage] = {
+        ...newErrors[activeLanguage],
+        general: tTranslations("atLeastOneRequired"),
+      };
     }
-    if (title.length > 100) {
-      newErrors.title = tErrors("maxLength", { max: 100 });
-    }
-    if (!shortDescription.trim() || shortDescription.length < 10) {
-      newErrors.shortDescription = tErrors("minLength", { min: 10 });
-    }
-    if (shortDescription.length > 280) {
-      newErrors.shortDescription = tErrors("maxLength", { max: 280 });
-    }
-    if (!pitch.trim() || pitch.length < 20) {
-      newErrors.pitch = tErrors("minLength", { min: 20 });
-    }
-    if (pitch.length > 500) {
-      newErrors.pitch = tErrors("maxLength", { max: 500 });
-    }
+
+    // Check for website URL
     if (websiteUrl && !isValidUrl(websiteUrl)) {
-      newErrors.websiteUrl = "Invalid URL";
+      newErrors.general = { websiteUrl: tErrors("invalidUrl") };
     }
 
-    if (Object.keys(newErrors).length > 0) {
+    // Check if there are any errors
+    const hasErrors = Object.values(newErrors).some(
+      (langErrors) => Object.keys(langErrors).length > 0
+    );
+
+    if (hasErrors) {
       setErrors(newErrors);
+      // Switch to the first language with errors
+      for (const lang of SUPPORTED_LANGUAGES) {
+        if (Object.keys(newErrors[lang]).length > 0) {
+          setActiveLanguage(lang);
+          break;
+        }
+      }
       return;
     }
 
+    setErrors({ en: {}, ru: {} });
+
+    // Build translations object for submission
+    const submittedTranslations: CreateProjectWithTranslationsInput["translations"] = {};
+
+    for (const lang of SUPPORTED_LANGUAGES) {
+      if (isLanguageComplete(lang)) {
+        submittedTranslations[lang] = {
+          title: translations[lang].title.trim(),
+          shortDescription: translations[lang].shortDescription.trim(),
+          pitch: translations[lang].pitch.trim(),
+          traction: translations[lang].traction.trim() || null,
+          investmentDetails: needsInvestment
+            ? translations[lang].investmentDetails.trim() || null
+            : null,
+        };
+      }
+    }
+
     await onSubmit({
-      title: title.trim(),
-      shortDescription: shortDescription.trim(),
-      pitch: pitch.trim(),
+      translations: submittedTranslations,
       websiteUrl: websiteUrl.trim() || null,
       status,
       tags,
       lookingFor,
-      traction: traction.trim() || null,
       needsInvestment,
-      investmentDetails: needsInvestment ? investmentDetails.trim() : null,
       teamMembers,
       estimatedLaunch: estimatedLaunch ? new Date(estimatedLaunch) : null,
       screenshotUrl,
-      language,
     });
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="title">
-          {t("title")} <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="My Awesome Startup"
-          maxLength={100}
-          aria-invalid={!!errors.title}
-        />
-        <div className="flex justify-between text-xs">
-          {errors.title && (
-            <span className="text-destructive">{errors.title}</span>
-          )}
-          <span className="text-muted-foreground ml-auto">{title.length}/100</span>
-        </div>
-      </div>
+  // Render translation fields for a specific language
+  const renderTranslationFields = (lang: SupportedLanguage) => {
+    const trans = translations[lang];
+    const langErrors = errors[lang] || {};
 
-      {/* Short Description */}
-      <div className="space-y-2">
-        <Label htmlFor="shortDescription">
-          {t("shortDescription")} <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="shortDescription"
-          value={shortDescription}
-          onChange={(e) => setShortDescription(e.target.value)}
-          placeholder="A brief description of your project..."
-          maxLength={280}
-          className="min-h-[80px]"
-          aria-invalid={!!errors.shortDescription}
-        />
-        <div className="flex justify-between text-xs">
-          {errors.shortDescription && (
-            <span className="text-destructive">{errors.shortDescription}</span>
-          )}
-          <span className="text-muted-foreground ml-auto">
-            {shortDescription.length}/280
-          </span>
-        </div>
-      </div>
-
-      {/* Pitch */}
-      <div className="space-y-2">
-        <Label htmlFor="pitch">
-          {t("pitch")} <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="pitch"
-          value={pitch}
-          onChange={(e) => setPitch(e.target.value)}
-          placeholder="Explain your project in more detail. What problem does it solve? What makes it unique?"
-          maxLength={500}
-          className="min-h-[120px]"
-          aria-invalid={!!errors.pitch}
-        />
-        <div className="flex justify-between text-xs">
-          {errors.pitch && (
-            <span className="text-destructive">{errors.pitch}</span>
-          )}
-          <span className="text-muted-foreground ml-auto">{pitch.length}/500</span>
-        </div>
-      </div>
-
-      {/* Status */}
-      <div className="space-y-2">
-        <Label htmlFor="status">{t("status")}</Label>
-        <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PROJECT_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {tStatus(s)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Website URL */}
-      <div className="space-y-2">
-        <Label htmlFor="websiteUrl">{t("website")}</Label>
-        <Input
-          id="websiteUrl"
-          type="url"
-          value={websiteUrl}
-          onChange={(e) => setWebsiteUrl(e.target.value)}
-          placeholder="https://example.com"
-          aria-invalid={!!errors.websiteUrl}
-        />
-        {errors.websiteUrl && (
-          <span className="text-xs text-destructive">{errors.websiteUrl}</span>
-        )}
-      </div>
-
-      {/* Tags */}
-      <div className="space-y-2">
-        <Label>{t("tags")}</Label>
-        <TagInput
-          value={tags}
-          onChange={setTags}
-          placeholder="Add tags (press Enter or comma)"
-          maxTags={10}
-        />
-        <p className="text-xs text-muted-foreground">
-          Press Enter or comma to add a tag. Maximum 10 tags.
-        </p>
-      </div>
-
-      {/* Looking For */}
-      <div className="space-y-2">
-        <Label>{t("lookingFor")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {LOOKING_FOR_ROLES.map((role) => (
-            <Button
-              key={role}
-              type="button"
-              variant={lookingFor.includes(role) ? "default" : "outline"}
-              size="sm"
-              onClick={() => toggleRole(role)}
-            >
-              {tRoles(role)}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Traction */}
-      <div className="space-y-2">
-        <Label htmlFor="traction">{t("traction")}</Label>
-        <Textarea
-          id="traction"
-          value={traction}
-          onChange={(e) => setTraction(e.target.value)}
-          placeholder={t("tractionPlaceholder")}
-          maxLength={2000}
-          className="min-h-[100px]"
-        />
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">{t("tractionHint")}</span>
-          <span className="text-muted-foreground">{traction.length}/2000</span>
-        </div>
-      </div>
-
-      {/* Investment */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="needsInvestment">{t("needsInvestment")}</Label>
-            <p className="text-xs text-muted-foreground">
-              Toggle if you are looking for investors
-            </p>
-          </div>
-          <Switch
-            id="needsInvestment"
-            checked={needsInvestment}
-            onCheckedChange={setNeedsInvestment}
+    return (
+      <div className="space-y-6">
+        {/* Title */}
+        <div className="space-y-2">
+          <Label htmlFor={`title-${lang}`}>
+            {t("title")} <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id={`title-${lang}`}
+            value={trans.title}
+            onChange={(e) => updateTranslation(lang, "title", e.target.value)}
+            placeholder={lang === "en" ? "My Awesome Startup" : "Мой крутой стартап"}
+            maxLength={100}
+            aria-invalid={!!langErrors.title}
           />
+          <div className="flex justify-between text-xs">
+            {langErrors.title && (
+              <span className="text-destructive">{langErrors.title}</span>
+            )}
+            <span className="text-muted-foreground ml-auto">{trans.title.length}/100</span>
+          </div>
         </div>
 
+        {/* Short Description */}
+        <div className="space-y-2">
+          <Label htmlFor={`shortDescription-${lang}`}>
+            {t("shortDescription")} <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id={`shortDescription-${lang}`}
+            value={trans.shortDescription}
+            onChange={(e) => updateTranslation(lang, "shortDescription", e.target.value)}
+            placeholder={
+              lang === "en"
+                ? "A brief description of your project..."
+                : "Краткое описание вашего проекта..."
+            }
+            maxLength={280}
+            className="min-h-[80px]"
+            aria-invalid={!!langErrors.shortDescription}
+          />
+          <div className="flex justify-between text-xs">
+            {langErrors.shortDescription && (
+              <span className="text-destructive">{langErrors.shortDescription}</span>
+            )}
+            <span className="text-muted-foreground ml-auto">
+              {trans.shortDescription.length}/280
+            </span>
+          </div>
+        </div>
+
+        {/* Pitch */}
+        <div className="space-y-2">
+          <Label htmlFor={`pitch-${lang}`}>
+            {t("pitch")} <span className="text-destructive">*</span>
+          </Label>
+          <Textarea
+            id={`pitch-${lang}`}
+            value={trans.pitch}
+            onChange={(e) => updateTranslation(lang, "pitch", e.target.value)}
+            placeholder={
+              lang === "en"
+                ? "Explain your project in more detail. What problem does it solve? What makes it unique?"
+                : "Расскажите подробнее о вашем проекте. Какую проблему он решает? Что делает его уникальным?"
+            }
+            maxLength={5000}
+            className="min-h-[120px]"
+            aria-invalid={!!langErrors.pitch}
+          />
+          <div className="flex justify-between text-xs">
+            {langErrors.pitch && (
+              <span className="text-destructive">{langErrors.pitch}</span>
+            )}
+            <span className="text-muted-foreground ml-auto">{trans.pitch.length}/5000</span>
+          </div>
+        </div>
+
+        {/* Traction */}
+        <div className="space-y-2">
+          <Label htmlFor={`traction-${lang}`}>{t("traction")}</Label>
+          <Textarea
+            id={`traction-${lang}`}
+            value={trans.traction}
+            onChange={(e) => updateTranslation(lang, "traction", e.target.value)}
+            placeholder={t("tractionPlaceholder")}
+            maxLength={5000}
+            className="min-h-[100px]"
+          />
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">{t("tractionHint")}</span>
+            <span className="text-muted-foreground">{trans.traction.length}/5000</span>
+          </div>
+        </div>
+
+        {/* Investment Details (only if needsInvestment) */}
         {needsInvestment && (
           <div className="space-y-2">
-            <Label htmlFor="investmentDetails">{t("investmentDetails")}</Label>
+            <Label htmlFor={`investmentDetails-${lang}`}>{t("investmentDetails")}</Label>
             <Textarea
-              id="investmentDetails"
-              value={investmentDetails}
-              onChange={(e) => setInvestmentDetails(e.target.value)}
-              placeholder="Describe what kind of investment you're looking for..."
+              id={`investmentDetails-${lang}`}
+              value={trans.investmentDetails}
+              onChange={(e) => updateTranslation(lang, "investmentDetails", e.target.value)}
+              placeholder={
+                lang === "en"
+                  ? "Describe what kind of investment you're looking for..."
+                  : "Опишите, какие инвестиции вы ищете..."
+              }
               maxLength={1000}
               className="min-h-[80px]"
             />
             <span className="text-xs text-muted-foreground">
-              {investmentDetails.length}/1000
+              {trans.investmentDetails.length}/1000
             </span>
           </div>
         )}
+
+        {langErrors.general && (
+          <p className="text-sm text-destructive">{langErrors.general}</p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Language Tabs */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label id="content-language-label">{t("contentLanguage")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {completedLanguages.length === 0
+              ? tTranslations("fillAtLeastOne")
+              : tTranslations("languagesComplete", { count: completedLanguages.length })}
+          </p>
+        </div>
+        <LanguageTabs
+          activeLanguage={activeLanguage}
+          onLanguageChange={setActiveLanguage}
+          completedLanguages={completedLanguages}
+          showValidation
+          ariaLabel={t("contentLanguage")}
+        />
       </div>
 
-      {/* Team Members */}
-      <div className="space-y-4">
-        <Label>{t("team")}</Label>
+      {/* Translation Fields */}
+      {SUPPORTED_LANGUAGES.map((lang) => (
+        <LanguageTabPanel key={lang} language={lang} activeLanguage={activeLanguage}>
+          {renderTranslationFields(lang)}
+        </LanguageTabPanel>
+      ))}
 
-        {teamMembers.length > 0 && (
-          <div className="space-y-2">
-            {teamMembers.map((member, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 rounded-md bg-surface-elevated"
+      {/* Non-translatable fields */}
+      <div className="border-t border-border pt-6 space-y-6">
+        {/* Status */}
+        <div className="space-y-2">
+          <Label htmlFor="status">{t("status")}</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {tStatus(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Website URL */}
+        <div className="space-y-2">
+          <Label htmlFor="websiteUrl">{t("website")}</Label>
+          <Input
+            id="websiteUrl"
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://example.com"
+            aria-invalid={!!errors.general?.websiteUrl}
+          />
+          {errors.general?.websiteUrl && (
+            <span className="text-xs text-destructive">{errors.general.websiteUrl}</span>
+          )}
+        </div>
+
+        {/* Tags */}
+        <div className="space-y-2">
+          <Label>{t("tags")}</Label>
+          <TagInput
+            value={tags}
+            onChange={setTags}
+            placeholder={t("tagsPlaceholder")}
+            maxTags={10}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("tagsHint")}
+          </p>
+        </div>
+
+        {/* Looking For */}
+        <div className="space-y-2">
+          <Label>{t("lookingFor")}</Label>
+          <div className="flex flex-wrap gap-2">
+            {LOOKING_FOR_ROLES.map((role) => (
+              <Button
+                key={role}
+                type="button"
+                variant={lookingFor.includes(role) ? "default" : "outline"}
+                size="sm"
+                onClick={() => toggleRole(role)}
               >
-                <div>
-                  <p className="font-medium text-sm">{member.name}</p>
-                  <p className="text-xs text-muted-foreground">{member.role}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeTeamMember(index)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  {tCommon("delete")}
-                </Button>
-              </div>
+                {tRoles(role)}
+              </Button>
             ))}
           </div>
-        )}
-
-        <div className="flex gap-2">
-          <Input
-            placeholder="Name"
-            value={newMemberName}
-            onChange={(e) => setNewMemberName(e.target.value)}
-            className="flex-1"
-            aria-label="Team member name"
-          />
-          <Input
-            placeholder="Role"
-            value={newMemberRole}
-            onChange={(e) => setNewMemberRole(e.target.value)}
-            className="flex-1"
-            aria-label="Team member role"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addTeamMember}
-            disabled={!newMemberName.trim() || !newMemberRole.trim()}
-          >
-            Add
-          </Button>
         </div>
-      </div>
 
-      {/* Estimated Launch */}
-      <div className="space-y-2">
-        <Label htmlFor="estimatedLaunch">{t("estimatedLaunch")}</Label>
-        <Input
-          id="estimatedLaunch"
-          type="date"
-          value={estimatedLaunch}
-          onChange={(e) => setEstimatedLaunch(e.target.value)}
-        />
-      </div>
+        {/* Investment */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="needsInvestment">{t("needsInvestment")}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t("needsInvestmentHint")}
+              </p>
+            </div>
+            <Switch
+              id="needsInvestment"
+              checked={needsInvestment}
+              onCheckedChange={setNeedsInvestment}
+            />
+          </div>
+        </div>
 
-      {/* Screenshot Upload */}
-      <div className="space-y-2">
-        <Label>Screenshot</Label>
-        <FileUpload
-          value={screenshotUrl}
-          onChange={setScreenshotUrl}
-          accept="image/*"
-        />
-      </div>
+        {/* Team Members */}
+        <div className="space-y-4">
+          <Label>{t("team")}</Label>
 
-      {/* Language */}
-      <div className="space-y-2">
-        <Label>Content Language</Label>
-        <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ru")}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="ru">Russian</SelectItem>
-          </SelectContent>
-        </Select>
+          {teamMembers.length > 0 && (
+            <div className="space-y-2">
+              {teamMembers.map((member, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-md bg-surface-elevated"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{member.name}</p>
+                    <p className="text-xs text-muted-foreground">{member.role}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeTeamMember(index)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {tCommon("delete")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Input
+              placeholder={t("memberName")}
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              className="flex-1"
+              aria-label={t("memberName")}
+            />
+            <Input
+              placeholder={t("memberRole")}
+              value={newMemberRole}
+              onChange={(e) => setNewMemberRole(e.target.value)}
+              className="flex-1"
+              aria-label={t("memberRole")}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addTeamMember}
+              disabled={!newMemberName.trim() || !newMemberRole.trim()}
+            >
+              {tCommon("add")}
+            </Button>
+          </div>
+        </div>
+
+        {/* Estimated Launch */}
+        <div className="space-y-2">
+          <Label htmlFor="estimatedLaunch">{t("estimatedLaunch")}</Label>
+          <Input
+            id="estimatedLaunch"
+            type="date"
+            value={estimatedLaunch}
+            onChange={(e) => setEstimatedLaunch(e.target.value)}
+          />
+        </div>
+
+        {/* Screenshot Upload */}
+        <div className="space-y-2">
+          <Label>Screenshot</Label>
+          <FileUpload
+            value={screenshotUrl}
+            onChange={setScreenshotUrl}
+            accept="image/*"
+          />
+        </div>
       </div>
 
       {/* Submit */}

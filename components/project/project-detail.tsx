@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import {
   Card,
   CardContent,
@@ -18,18 +19,24 @@ import {
   Pencil,
   Globe,
   TrendingUp,
+  Languages,
 } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
-import type { ProjectStatus } from "@/lib/db";
+import type { ProjectStatus, ProjectTranslation } from "@/lib/db";
 import type { TeamMember } from "@/lib/validations/project";
+import {
+  getBestTranslation,
+  getAvailableLanguages,
+  type SupportedLanguage,
+} from "@/lib/translations/project-translations";
 
 interface ProjectDetailProps {
   project: {
     id: string;
     slug: string;
-    title: string;
-    shortDescription: string;
-    pitch: string;
+    title: string | null;
+    shortDescription: string | null;
+    pitch: string | null;
     screenshotUrl: string | null;
     websiteUrl: string | null;
     status: ProjectStatus;
@@ -51,10 +58,16 @@ interface ProjectDetailProps {
       email: string;
       avatarUrl: string | null;
     };
+    translations?: ProjectTranslation[];
   };
   isOwner: boolean;
   onEdit?: () => void;
 }
+
+const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
+  en: "EN",
+  ru: "RU",
+};
 
 const PREDEFINED_ROLES = ["developer", "designer", "marketer", "productManager", "cofounder", "investor", "advisor"] as const;
 type PredefinedRole = typeof PREDEFINED_ROLES[number];
@@ -62,6 +75,22 @@ type PredefinedRole = typeof PREDEFINED_ROLES[number];
 export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) {
   const t = useTranslations("project");
   const tRoles = useTranslations("roles");
+  const locale = useLocale();
+
+  // Resolve the best translation based on user locale
+  const translations = project.translations || [];
+  const translation = getBestTranslation(translations, locale);
+
+  const resolvedContent = {
+    title: translation?.title ?? project.title ?? "",
+    shortDescription: translation?.shortDescription ?? project.shortDescription ?? "",
+    pitch: translation?.pitch ?? project.pitch ?? "",
+    traction: translation?.traction ?? project.traction,
+    investmentDetails: translation?.investmentDetails ?? project.investmentDetails,
+    language: translation?.language ?? project.language,
+  };
+
+  const availableLanguages = getAvailableLanguages(translations);
 
   const translateRole = (role: string): string => {
     if (PREDEFINED_ROLES.includes(role as PredefinedRole)) {
@@ -78,7 +107,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
           <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
             <img
               src={project.screenshotUrl}
-              alt={`Screenshot of ${project.title}`}
+              alt={`Screenshot of ${resolvedContent.title}`}
               loading="lazy"
               className="w-full h-full object-cover"
             />
@@ -88,11 +117,18 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{project.title}</h1>
+              <h1 className="text-3xl font-bold">{resolvedContent.title}</h1>
               <ProjectStatusBadge status={project.status} />
+              {/* Language indicator */}
+              {availableLanguages.length > 1 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Languages className="size-3" />
+                  {availableLanguages.map((lang) => LANGUAGE_LABELS[lang]).join(" / ")}
+                </div>
+              )}
             </div>
             <p className="text-lg text-muted-foreground">
-              {project.shortDescription}
+              {resolvedContent.shortDescription}
             </p>
           </div>
 
@@ -155,7 +191,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
               <h2 className="text-xl font-semibold">{t("pitch")}</h2>
             </CardHeader>
             <CardContent>
-              <Markdown content={project.pitch} />
+              <Markdown content={resolvedContent.pitch} />
             </CardContent>
           </Card>
 
@@ -182,7 +218,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
           )}
 
           {/* Traction */}
-          {project.traction && (
+          {resolvedContent.traction && (
             <Card className="border-green-500/30 bg-green-500/5">
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -191,7 +227,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                 </div>
               </CardHeader>
               <CardContent>
-                <Markdown content={project.traction} />
+                <Markdown content={resolvedContent.traction} />
               </CardContent>
             </Card>
           )}
@@ -206,13 +242,11 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
                 </div>
               </CardHeader>
               <CardContent>
-                {project.investmentDetails ? (
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {project.investmentDetails}
-                  </p>
+                {resolvedContent.investmentDetails ? (
+                  <Markdown content={resolvedContent.investmentDetails} />
                 ) : (
                   <p className="text-muted-foreground">
-                    This project is seeking investment.
+                    {t("seekingInvestment")}
                   </p>
                 )}
               </CardContent>
@@ -268,7 +302,7 @@ export function ProjectDetail({ project, isOwner, onEdit }: ProjectDetailProps) 
           {/* Owner Info */}
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Created by</h2>
+              <h2 className="text-lg font-semibold">{t("createdBy")}</h2>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">

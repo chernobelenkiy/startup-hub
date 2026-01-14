@@ -232,6 +232,14 @@ export function createMockPrismaClient() {
       delete: vi.fn(),
       count: vi.fn(),
     },
+    projectTranslation: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn(),
+      delete: vi.fn(),
+    },
     like: {
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -259,6 +267,9 @@ export function createMockPrismaClient() {
         },
         project: {
           update: vi.fn(),
+        },
+        projectTranslation: {
+          upsert: vi.fn(),
         },
       })
     ),
@@ -322,4 +333,190 @@ export function generateInvalidPasswordShort(): string {
  */
 export function generateInvalidPasswordNoNumber(): string {
   return "PasswordOnly";
+}
+
+// ============================================
+// Mock Project Translation Helpers
+// ============================================
+
+export interface MockProjectTranslation {
+  id: string;
+  projectId: string;
+  language: string;
+  title: string;
+  shortDescription: string;
+  pitch: string;
+  traction: string | null;
+  investmentDetails: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Create a mock project translation for testing
+ */
+export function createMockProjectTranslation(
+  language: "en" | "ru" = "ru",
+  overrides?: Partial<MockProjectTranslation>
+): MockProjectTranslation {
+  const languageLabels = {
+    en: {
+      title: "Test Project in English",
+      shortDescription: "A test project description in English with enough characters",
+      pitch: "This is a test pitch in English that needs to be at least twenty characters long",
+    },
+    ru: {
+      title: "Test Project Russian",
+      shortDescription: "Russian description with enough characters for validation",
+      pitch: "This is a test pitch in Russian that needs to be at least twenty characters long",
+    },
+  };
+
+  return {
+    id: `trans-${language}-${Date.now()}`,
+    projectId: "test-project-id",
+    language,
+    title: languageLabels[language].title,
+    shortDescription: languageLabels[language].shortDescription,
+    pitch: languageLabels[language].pitch,
+    traction: null,
+    investmentDetails: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+export interface MockProjectWithTranslations extends MockProject {
+  translations: MockProjectTranslation[];
+}
+
+/**
+ * Create a mock project with translations for testing
+ */
+export function createMockProjectWithTranslations(
+  languages: ("en" | "ru")[] = ["ru"],
+  overrides?: Partial<MockProject>
+): MockProjectWithTranslations {
+  const translations = languages.map((lang) =>
+    createMockProjectTranslation(lang, { projectId: overrides?.id || "test-project-id" })
+  );
+
+  return {
+    ...createMockProject(overrides),
+    translations,
+  };
+}
+
+/**
+ * Create valid translation input data for testing
+ */
+export function createValidTranslationInput(language: "en" | "ru" = "ru") {
+  return {
+    title: `Valid ${language === "en" ? "English" : "Russian"} Title`,
+    shortDescription: `A valid short description in ${language === "en" ? "English" : "Russian"} with enough chars`,
+    pitch: `A valid pitch in ${language === "en" ? "English" : "Russian"} that is long enough to pass validation requirements`,
+    traction: null,
+    investmentDetails: null,
+  };
+}
+
+/**
+ * Create valid translations object for creating project with translations
+ */
+export function createValidTranslationsInput(languages: ("en" | "ru")[] = ["ru"]) {
+  const translations: Record<string, ReturnType<typeof createValidTranslationInput>> = {};
+
+  for (const lang of languages) {
+    translations[lang] = createValidTranslationInput(lang);
+  }
+
+  return translations;
+}
+
+/**
+ * Create valid project input with translations
+ */
+export function createValidProjectWithTranslationsInput(languages: ("en" | "ru")[] = ["ru"]) {
+  return {
+    translations: createValidTranslationsInput(languages),
+    status: "IDEA" as const,
+    needsInvestment: false,
+    teamMembers: [],
+    lookingFor: [],
+    tags: [],
+  };
+}
+
+// ============================================
+// Mock Filter Options Helpers
+// ============================================
+
+export interface MockFilterOption {
+  value: string;
+  count: number;
+}
+
+export interface MockFiltersResponse {
+  tags: MockFilterOption[];
+  roles: MockFilterOption[];
+  statuses: MockFilterOption[];
+}
+
+/**
+ * Create mock filter options for testing
+ */
+export function createMockFiltersResponse(
+  overrides?: Partial<MockFiltersResponse>
+): MockFiltersResponse {
+  return {
+    tags: [
+      { value: "AI", count: 10 },
+      { value: "SaaS", count: 8 },
+      { value: "B2B", count: 5 },
+    ],
+    roles: [
+      { value: "developer", count: 15 },
+      { value: "designer", count: 10 },
+      { value: "marketer", count: 5 },
+    ],
+    statuses: [
+      { value: "IDEA", count: 20 },
+      { value: "MVP", count: 15 },
+      { value: "BETA", count: 8 },
+      { value: "LAUNCHED", count: 5 },
+      { value: "PAUSED", count: 2 },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * Create mock raw query result for tags (as returned by $queryRaw)
+ */
+export function createMockTagsQueryResult(
+  tags: Array<{ tag: string; count: number }>
+): Array<{ tag: string; count: bigint }> {
+  return tags.map((t) => ({ tag: t.tag, count: BigInt(t.count) }));
+}
+
+/**
+ * Create mock raw query result for roles (as returned by $queryRaw)
+ */
+export function createMockRolesQueryResult(
+  roles: Array<{ role: string; count: number }>
+): Array<{ role: string; count: bigint }> {
+  return roles.map((r) => ({ role: r.role, count: BigInt(r.count) }));
+}
+
+/**
+ * Create mock groupBy result for statuses
+ */
+export function createMockStatusesGroupByResult(
+  statuses: Array<{ status: string; count: number }>
+): Array<{ status: string; _count: { status: number } }> {
+  return statuses.map((s) => ({
+    status: s.status,
+    _count: { status: s.count },
+  }));
 }

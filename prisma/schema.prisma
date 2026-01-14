@@ -101,10 +101,15 @@ model Project {
   ownerId           String
   owner             User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  // Core info
-  title             String
-  shortDescription  String        @db.VarChar(280)
-  pitch             String        @db.Text
+  // Core info - DEPRECATED: Use translations relation instead
+  // Kept optional for migration period
+  title             String?
+  shortDescription  String?       @db.VarChar(280)
+  pitch             String?       @db.Text
+
+  // Translations - new multilingual support
+  translations      ProjectTranslation[]
+
   screenshotUrl     String?
   websiteUrl        String?
 
@@ -112,11 +117,12 @@ model Project {
   status            ProjectStatus @default(IDEA)
   estimatedLaunch   DateTime?
 
-  // Traction
-  traction          String?       @db.Text // Metrics, milestones, user growth, revenue, partnerships, etc.
+  // Traction - DEPRECATED: Use translations relation instead
+  traction          String?       @db.Text
 
   // Investment
   needsInvestment   Boolean       @default(false)
+  // DEPRECATED: Use translations relation instead
   investmentDetails String?
 
   // Team & roles - stored as JSON arrays
@@ -130,7 +136,7 @@ model Project {
   likesCount        Int           @default(0)
   likes             Like[]
 
-  // Language of content
+  // Language of content - DEPRECATED: Use translations relation instead
   language          String        @default("en")
 
   createdAt         DateTime      @default(now())
@@ -142,6 +148,27 @@ model Project {
   @@index([ownerId])
   @@index([language])
   @@map("projects")
+}
+
+model ProjectTranslation {
+  id                String   @id @default(cuid())
+  projectId         String
+  language          String   // "en" | "ru"
+  title             String
+  shortDescription  String   @db.VarChar(280)
+  pitch             String   @db.Text
+  traction          String?  @db.Text
+  investmentDetails String?
+
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([projectId, language])
+  @@index([projectId])
+  @@index([language])
+  @@map("project_translations")
 }
 
 model Like {

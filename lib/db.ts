@@ -29,6 +29,7 @@ export type {
   Account,
   Session,
   Project,
+  ProjectTranslation,
   Like,
   APIToken,
 } from "@/lib/generated/prisma/client";

@@ -22,9 +22,11 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
         <input
           type="checkbox"
           ref={ref}
+          id={props.id}
           checked={checked}
           onChange={(e) => onCheckedChange?.(e.target.checked)}
           className="sr-only"
+          aria-checked={checked}
           {...props}
         />
         <span

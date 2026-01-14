@@ -1,47 +1,39 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { X, Filter } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
+import { useFilterOptions } from "@/lib/hooks/use-filter-options";
 import type { ProjectStatus } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-/** Available project statuses */
-const PROJECT_STATUSES: ProjectStatus[] = [
-  "IDEA",
-  "MVP",
-  "BETA",
-  "LAUNCHED",
-  "PAUSED",
-];
+/**
+ * English role labels for search filters
+ * Search is English-only - no i18n
+ */
+const ROLE_LABELS: Record<string, string> = {
+  developer: "Developer",
+  designer: "Designer",
+  marketer: "Marketer",
+  productManager: "Product Manager",
+  cofounder: "Co-founder",
+  investor: "Investor",
+  advisor: "Advisor",
+};
 
-/** Available roles */
-const AVAILABLE_ROLES = [
-  "developer",
-  "designer",
-  "marketer",
-  "productManager",
-  "cofounder",
-  "investor",
-  "advisor",
-] as const;
-
-/** Popular tags for quick filtering */
-const POPULAR_TAGS = [
-  "AI",
-  "SaaS",
-  "B2B",
-  "B2C",
-  "Fintech",
-  "Healthcare",
-  "EdTech",
-  "E-commerce",
-  "Mobile",
-  "Web3",
-];
+/**
+ * English status labels for search filters
+ */
+const STATUS_LABELS: Record<string, string> = {
+  IDEA: "Idea",
+  MVP: "MVP",
+  BETA: "Beta",
+  LAUNCHED: "Launched",
+  PAUSED: "Paused",
+};
 
 interface FiltersProps {
   selectedStatus: ProjectStatus[];
@@ -71,19 +63,26 @@ export function Filters({
   className,
 }: FiltersProps) {
   const t = useTranslations();
-  const tStatus = useTranslations("projectStatus");
-  const tRoles = useTranslations("roles");
 
-  // Build status options
-  const statusOptions: MultiSelectOption[] = PROJECT_STATUSES.map((status) => ({
-    value: status,
-    label: tStatus(status),
+  // Fetch dynamic filter options from database
+  const { tags, roles, statuses, isLoading } = useFilterOptions();
+
+  // Build status options with counts
+  const statusOptions: MultiSelectOption[] = statuses.map((status) => ({
+    value: status.value,
+    label:
+      status.count > 0
+        ? `${STATUS_LABELS[status.value] || status.value} (${status.count})`
+        : STATUS_LABELS[status.value] || status.value,
   }));
 
-  // Build role options
-  const roleOptions: MultiSelectOption[] = AVAILABLE_ROLES.map((role) => ({
-    value: role,
-    label: tRoles(role),
+  // Build role options with counts (English only)
+  const roleOptions: MultiSelectOption[] = roles.map((role) => ({
+    value: role.value,
+    label:
+      role.count > 0
+        ? `${ROLE_LABELS[role.value] || role.value} (${role.count})`
+        : ROLE_LABELS[role.value] || role.value,
   }));
 
   const toggleTag = (tag: string) => {
@@ -109,7 +108,7 @@ export function Filters({
           selected={selectedStatus}
           onChange={(values) => onStatusChange(values as ProjectStatus[])}
           placeholder={t("project.status")}
-          className="w-full sm:w-[140px]"
+          className="w-full sm:w-[160px]"
         />
 
         {/* Roles dropdown */}
@@ -118,7 +117,7 @@ export function Filters({
           selected={selectedRoles}
           onChange={onRolesChange}
           placeholder={t("project.lookingFor")}
-          className="w-full sm:w-[140px]"
+          className="w-full sm:w-[180px]"
         />
 
         {/* Needs Investment toggle */}
@@ -155,23 +154,40 @@ export function Filters({
         <span className="text-sm text-muted-foreground shrink-0">
           {t("project.tags")}:
         </span>
-        {POPULAR_TAGS.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => toggleTag(tag)}
-            aria-pressed={selectedTags.includes(tag)}
-            className={cn(
-              "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium shrink-0",
-              "cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-              selectedTags.includes(tag)
-                ? "border-primary bg-primary/20 text-primary"
-                : "border-border bg-surface-elevated text-muted hover:border-primary/50 hover:text-foreground"
-            )}
-          >
-            {tag}
-          </button>
-        ))}
+        {isLoading ? (
+          // Loading skeleton for tags
+          <div className="flex gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-6 w-16 rounded-full bg-surface-elevated animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          tags.map((tag) => (
+            <button
+              key={tag.value}
+              type="button"
+              onClick={() => toggleTag(tag.value)}
+              aria-pressed={selectedTags.includes(tag.value)}
+              className={cn(
+                "inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-xs font-medium shrink-0",
+                "cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                selectedTags.includes(tag.value)
+                  ? "border-primary bg-primary/20 text-primary"
+                  : "border-border bg-surface-elevated text-muted hover:border-primary/50 hover:text-foreground"
+              )}
+            >
+              {tag.value}
+              {tag.count > 0 && (
+                <span className="ml-1 text-[10px] opacity-70">
+                  ({tag.count})
+                </span>
+              )}
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

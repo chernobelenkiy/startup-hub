@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ProjectForm } from "./project-form";
-import type { CreateProjectInput } from "@/lib/validations/project";
+import type { CreateProjectWithTranslationsInput } from "@/lib/validations/project";
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -28,7 +28,7 @@ export function CreateProjectModal({
   const tErrors = useTranslations("errors");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (data: CreateProjectInput & { screenshotUrl?: string | null }) => {
+  const handleSubmit = async (data: CreateProjectWithTranslationsInput & { screenshotUrl?: string | null }) => {
     setIsLoading(true);
 
     try {
@@ -45,7 +45,7 @@ export function CreateProjectModal({
         throw new Error(errorData.error || "Failed to create project");
       }
 
-      toast.success(t("createProject") + " - Success");
+      toast.success(t("projectCreated"));
       onSuccess();
     } catch (error) {
       console.error("Create project error:", error);

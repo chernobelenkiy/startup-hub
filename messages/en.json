@@ -100,6 +100,11 @@
     "addTeamMember": "Add team member",
     "memberName": "Name",
     "memberRole": "Role",
+    "tagsPlaceholder": "Add tags (press Enter or comma)",
+    "tagsHint": "Press Enter or comma to add a tag. Maximum 10 tags.",
+    "needsInvestmentHint": "Toggle if you are looking for investors",
+    "seekingInvestment": "This project is seeking investment.",
+    "createdBy": "Created by",
     "deleteConfirmTitle": "Delete Project",
     "deleteConfirmDescription": "Are you sure you want to delete this project? This action cannot be undone.",
     "projectCreated": "Project created successfully",
@@ -236,6 +241,13 @@
   "locale": {
     "en": "English",
     "ru": "Russian"
+  },
+  "translations": {
+    "languageTabsLabel": "Content Language",
+    "fillAtLeastOne": "Fill at least one language",
+    "languagesComplete": "{count} language(s) complete",
+    "atLeastOneRequired": "At least one complete translation is required",
+    "availableIn": "Available in"
   },
   "filters": {
     "sortNewest": "Newest",

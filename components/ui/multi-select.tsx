@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +83,7 @@ export function MultiSelect({
                     type="button"
                     onClick={(e) => handleRemove(selected[index], e)}
                     className="ml-1 hover:text-primary-foreground"
+                    aria-label={`Remove ${label}`}
                   >
                     <X className="h-3 w-3" />
                   </button>

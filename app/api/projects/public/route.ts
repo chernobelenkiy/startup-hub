@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db, ProjectStatus } from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { z } from "zod";
+import { getBestTranslation } from "@/lib/translations/project-translations";
 
 /**
  * Query parameters schema for public project listing
@@ -16,6 +17,7 @@ const querySchema = z.object({
   sort: z.enum(["newest", "oldest", "mostLiked"]).default("newest"),
   cursor: z.string().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
+  locale: z.string().optional(), // User's preferred locale
 });
 
 type SortOption = "newest" | "oldest" | "mostLiked";
@@ -24,6 +26,7 @@ type SortOption = "newest" | "oldest" | "mostLiked";
  * GET /api/projects/public
  * Public project listing with filtering, sorting, and cursor-based pagination
  * Returns isLiked field if user is authenticated
+ * Supports multilingual content via locale parameter or Accept-Language header
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,6 +35,9 @@ export async function GET(request: NextRequest) {
     // Check for authenticated user (optional for this endpoint)
     const session = await auth();
     const userId = session?.user?.id;
+
+    // Get locale from query param, header, or default to "ru"
+    const headerLocale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0];
 
     // Parse and validate query parameters
     const queryResult = querySchema.safeParse({
@@ -43,6 +49,7 @@ export async function GET(request: NextRequest) {
       sort: searchParams.get("sort") || "newest",
       cursor: searchParams.get("cursor") || undefined,
       limit: searchParams.get("limit") || 20,
+      locale: searchParams.get("locale") || headerLocale || "ru",
     });
 
     if (!queryResult.success) {
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { search, status, roles, investment, tags, sort, cursor, limit } =
+    const { search, status, roles, investment, tags, sort, cursor, limit, locale } =
       queryResult.data;
 
     // Parse comma-separated values
@@ -65,11 +72,23 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: Prisma.ProjectWhereInput = {};
 
-    // Search filter (title OR description, case-insensitive)
+    // Search filter - search across translations table as well
     if (search) {
       where.OR = [
+        // Search in legacy fields
         { title: { contains: search, mode: "insensitive" } },
         { shortDescription: { contains: search, mode: "insensitive" } },
+        // Search in translations
+        {
+          translations: {
+            some: {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { shortDescription: { contains: search, mode: "insensitive" } },
+              ],
+            },
+          },
+        },
       ];
     }
 
@@ -99,26 +118,15 @@ export async function GET(request: NextRequest) {
     // Build cursor clause for pagination
     const cursorClause = cursor ? { id: cursor } : undefined;
 
-    // Fetch projects with conditional like status
+    // Fetch projects with translations
     const projects = await db.project.findMany({
       where,
       orderBy,
       take: limit + 1, // Fetch one extra to determine if there are more
       cursor: cursorClause,
       skip: cursorClause ? 1 : 0, // Skip the cursor item itself
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        shortDescription: true,
-        screenshotUrl: true,
-        status: true,
-        tags: true,
-        lookingFor: true,
-        likesCount: true,
-        teamMembers: true,
-        needsInvestment: true,
-        createdAt: true,
+      include: {
+        translations: true,
         owner: {
           select: {
             id: true,
@@ -132,7 +140,7 @@ export async function GET(request: NextRequest) {
               where: { userId },
               select: { userId: true },
             }
-          : false,
+          : undefined,
       },
     });
 
@@ -141,12 +149,27 @@ export async function GET(request: NextRequest) {
     const rawProjects = hasMore ? projects.slice(0, limit) : projects;
     const nextCursor = hasMore ? rawProjects[rawProjects.length - 1]?.id : null;
 
-    // Transform projects to include isLiked field
+    // Transform projects with resolved translations
     const resultProjects = rawProjects.map((project) => {
-      const { likes, ...rest } = project;
+      const { likes, translations, ...rest } = project;
+      const translation = getBestTranslation(translations, locale ?? "ru");
+
       return {
-        ...rest,
-        isLiked: userId ? (likes as { userId: string }[])?.length > 0 : false,
+        id: rest.id,
+        slug: rest.slug,
+        title: translation?.title ?? rest.title ?? "",
+        shortDescription: translation?.shortDescription ?? rest.shortDescription ?? "",
+        screenshotUrl: rest.screenshotUrl,
+        status: rest.status,
+        tags: rest.tags,
+        lookingFor: rest.lookingFor,
+        likesCount: rest.likesCount,
+        teamMembers: rest.teamMembers,
+        needsInvestment: rest.needsInvestment,
+        createdAt: rest.createdAt,
+        owner: rest.owner,
+        isLiked: Boolean(userId && likes?.length),
+        language: translation?.language ?? rest.language,
       };
     });
 

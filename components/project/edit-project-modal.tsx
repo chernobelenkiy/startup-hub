@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ProjectForm } from "./project-form";
-import type { CreateProjectInput, TeamMember } from "@/lib/validations/project";
+import type { CreateProjectWithTranslationsInput, TeamMember } from "@/lib/validations/project";
 import type { ProjectListItem } from "@/components/dashboard/project-list";
 import { Loader2 } from "lucide-react";
 
@@ -22,12 +22,23 @@ interface EditProjectModalProps {
   onSuccess: () => void;
 }
 
-interface FullProject {
+interface ProjectTranslation {
   id: string;
-  slug: string;
+  projectId: string;
+  language: string;
   title: string;
   shortDescription: string;
   pitch: string;
+  traction: string | null;
+  investmentDetails: string | null;
+}
+
+interface FullProject {
+  id: string;
+  slug: string;
+  title: string | null;
+  shortDescription: string | null;
+  pitch: string | null;
   websiteUrl: string | null;
   screenshotUrl: string | null;
   status: "IDEA" | "MVP" | "BETA" | "LAUNCHED" | "PAUSED";
@@ -42,6 +53,7 @@ interface FullProject {
   likesCount: number;
   createdAt: string;
   updatedAt: string;
+  translations: ProjectTranslation[];
 }
 
 export function EditProjectModal({
@@ -84,7 +96,7 @@ export function EditProjectModal({
     }
   };
 
-  const handleSubmit = async (data: CreateProjectInput & { screenshotUrl?: string | null }) => {
+  const handleSubmit = async (data: CreateProjectWithTranslationsInput & { screenshotUrl?: string | null }) => {
     setIsLoading(true);
 
     try {
@@ -101,7 +113,7 @@ export function EditProjectModal({
         throw new Error(errorData.error || "Failed to update project");
       }
 
-      toast.success(t("editProject") + " - Success");
+      toast.success(t("projectUpdated"));
       onSuccess();
     } catch (error) {
       console.error("Update project error:", error);
@@ -127,21 +139,25 @@ export function EditProjectModal({
         ) : fullProject ? (
           <ProjectForm
             initialData={{
-              title: fullProject.title,
-              shortDescription: fullProject.shortDescription,
-              pitch: fullProject.pitch,
+              // Non-translatable fields
               websiteUrl: fullProject.websiteUrl,
               screenshotUrl: fullProject.screenshotUrl,
               status: fullProject.status,
               estimatedLaunch: fullProject.estimatedLaunch
                 ? new Date(fullProject.estimatedLaunch)
                 : null,
-              traction: fullProject.traction,
               needsInvestment: fullProject.needsInvestment,
-              investmentDetails: fullProject.investmentDetails,
               teamMembers: fullProject.teamMembers,
               lookingFor: fullProject.lookingFor,
               tags: fullProject.tags,
+              // Pass translations array for the form to populate both languages
+              translations: fullProject.translations,
+              // Legacy fields for backward compatibility
+              title: fullProject.title || "",
+              shortDescription: fullProject.shortDescription || "",
+              pitch: fullProject.pitch || "",
+              traction: fullProject.traction,
+              investmentDetails: fullProject.investmentDetails,
               language: fullProject.language,
             }}
             onSubmit={handleSubmit}

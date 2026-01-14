@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db as prisma } from "@/lib/db";
 import { requireAuth, mcpSuccess, mcpError, type McpResponse } from "./mcp-helpers";
 import { generateSlug } from "@/lib/utils";
+import type { SupportedLanguage } from "@/lib/translations/project-translations";
 
 export const createProjectSchema = {
   title: z.string().min(1).max(100).describe("Project title"),
@@ -13,7 +14,8 @@ export const createProjectSchema = {
   websiteUrl: z.string().url().optional().describe("Project website URL"),
   traction: z.string().optional().describe("Traction and progress metrics: user growth, revenue, partnerships, milestones achieved, beta users, waitlist size, or any other evidence of market validation"),
   needsInvestment: z.boolean().optional().describe("Whether project needs investment"),
-  investmentDetails: z.string().optional().describe("Investment details if needed")
+  investmentDetails: z.string().optional().describe("Investment details if needed"),
+  language: z.enum(["en", "ru"]).optional().describe("Content language (default: ru). Specifies which language the provided content is in.")
 };
 
 type CreateProjectInput = z.infer<z.ZodObject<typeof createProjectSchema>>;
@@ -28,20 +30,40 @@ export async function createProjectHandler(
   try {
     const slug = await generateSlug(input.title);
 
+    // Default to Russian as per plan
+    const language: SupportedLanguage = input.language || "ru";
+
     const project = await prisma.project.create({
       data: {
         slug,
+        // Legacy fields (for backward compatibility)
         title: input.title,
         shortDescription: input.shortDescription,
         pitch: input.pitch || "",
+        traction: input.traction,
+        investmentDetails: input.investmentDetails,
+        language,
+        // Non-translatable fields
         status: input.status || "IDEA",
         tags: input.tags || [],
         lookingFor: input.lookingFor || [],
         websiteUrl: input.websiteUrl,
-        traction: input.traction,
         needsInvestment: input.needsInvestment || false,
-        investmentDetails: input.investmentDetails,
-        ownerId: auth.userId
+        ownerId: auth.userId,
+        // Create translation record
+        translations: {
+          create: {
+            language,
+            title: input.title,
+            shortDescription: input.shortDescription,
+            pitch: input.pitch || "",
+            traction: input.traction,
+            investmentDetails: input.needsInvestment ? input.investmentDetails : null,
+          }
+        }
+      },
+      include: {
+        translations: true
       }
     });
 
@@ -51,7 +73,12 @@ export async function createProjectHandler(
         id: project.id,
         slug: project.slug,
         title: project.title,
-        status: project.status
+        status: project.status,
+        language,
+        translations: project.translations.map(t => ({
+          language: t.language,
+          title: t.title
+        }))
       }
     });
   } catch (error) {

@@ -100,6 +100,11 @@
     "addTeamMember": "Добавить участника",
     "memberName": "Имя",
     "memberRole": "Роль",
+    "tagsPlaceholder": "Добавьте теги (Enter или запятая)",
+    "tagsHint": "Нажмите Enter или запятую для добавления тега. Максимум 10 тегов.",
+    "needsInvestmentHint": "Включите, если ищете инвесторов",
+    "seekingInvestment": "Этот проект ищет инвестиции.",
+    "createdBy": "Автор",
     "deleteConfirmTitle": "Удалить проект",
     "deleteConfirmDescription": "Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.",
     "projectCreated": "Проект успешно создан",
@@ -236,6 +241,13 @@
   "locale": {
     "en": "Английский",
     "ru": "Русский"
+  },
+  "translations": {
+    "languageTabsLabel": "Язык контента",
+    "fillAtLeastOne": "Заполните хотя бы один язык",
+    "languagesComplete": "{count} язык(ов) заполнено",
+    "atLeastOneRequired": "Требуется хотя бы один полный перевод",
+    "availableIn": "Доступно на"
   },
   "filters": {
     "sortNewest": "Новые",
