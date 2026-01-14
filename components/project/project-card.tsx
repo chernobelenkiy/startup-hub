@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Users } from "lucide-react";
+import { Users, Globe } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "./project-status-badge";
@@ -16,6 +16,7 @@ interface ProjectCardProps {
     title: string;
     shortDescription: string;
     screenshotUrl: string | null;
+    websiteUrl: string | null;
     status: ProjectStatus;
     tags: string[];
     lookingFor: string[];
@@ -172,12 +173,28 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
           </div>
         )}
 
-        {/* Footer: Team size and likes */}
+        {/* Footer: Team size, website, and likes */}
         <div className="flex items-center justify-between pt-2 border-t border-border-muted">
           {/* Team size */}
-          <div className="flex items-center gap-1.5 text-muted" aria-label={`Team size: ${teamSize} members`}>
-            <Users className="h-4 w-4" aria-hidden="true" />
-            <span className="text-xs">{teamSize}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-muted" aria-label={`Team size: ${teamSize} members`}>
+              <Users className="h-4 w-4" aria-hidden="true" />
+              <span className="text-xs">{teamSize}</span>
+            </div>
+
+            {/* Website link */}
+            {project.websiteUrl && (
+              <a
+                href={project.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center text-muted hover:text-primary transition-colors"
+                aria-label="Visit website"
+              >
+                <Globe className="h-4 w-4" />
+              </a>
+            )}
           </div>
 
           {/* Interactive Like Button */}

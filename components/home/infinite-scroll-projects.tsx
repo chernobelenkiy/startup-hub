@@ -15,6 +15,7 @@ interface Project {
   title: string;
   shortDescription: string;
   screenshotUrl: string | null;
+  websiteUrl: string | null;
   status: ProjectStatus;
   tags: string[];
   lookingFor: string[];

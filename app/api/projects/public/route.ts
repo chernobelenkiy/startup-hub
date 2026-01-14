@@ -167,6 +167,7 @@ export async function GET(request: NextRequest) {
         title: translation?.title ?? rest.title ?? "",
         shortDescription: translation?.shortDescription ?? rest.shortDescription ?? "",
         screenshotUrl: rest.screenshotUrl,
+        websiteUrl: rest.websiteUrl,
         status: rest.status,
         tags: rest.tags,
         lookingFor: rest.lookingFor,
