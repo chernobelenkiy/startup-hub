@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { db, ProjectStatus } from "@/lib/db";
-import { Prisma } from "@/lib/generated/prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { z } from "zod";
 import { getBestTranslation } from "@/lib/translations/project-translations";
 
@@ -21,6 +19,7 @@ const querySchema = z.object({
 });
 
 type SortOption = "newest" | "oldest" | "mostLiked";
+type ProjectStatus = import("@/lib/db").ProjectStatus;
 
 /**
  * GET /api/projects/public
@@ -31,6 +30,11 @@ type SortOption = "newest" | "oldest" | "mostLiked";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
+    const [{ auth }, { db }] = await Promise.all([
+      import("@/lib/auth"),
+      import("@/lib/db"),
+    ]);
 
     // Check for authenticated user (optional for this endpoint)
     // Wrap in try-catch to handle auth failures gracefully
