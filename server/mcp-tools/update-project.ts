@@ -8,6 +8,7 @@ export const updateProjectSchema = {
   title: z.string().min(1).max(100).optional().describe("Project title"),
   shortDescription: z.string().min(1).max(200).optional().describe("Short description"),
   pitch: z.string().optional().describe("General pitch describing the project's vision, problem being solved, solution, and value proposition. This is the main narrative about what the project does and why it matters."),
+  features: z.string().max(10000).optional().nullable().describe("Key features and functionality of the project (max 10000 chars)"),
   status: z.enum(["IDEA", "MVP", "BETA", "LAUNCHED", "PAUSED"]).optional().describe("Project status"),
   tags: z.array(z.string()).optional().describe("Project tags"),
   lookingFor: z.array(z.string()).optional().describe("Roles you're looking for"),
@@ -68,6 +69,9 @@ export async function updateProjectHandler(
       translationUpdateData.pitch = updateData.pitch;
       projectUpdateData.pitch = updateData.pitch;
     }
+    if (updateData.features !== undefined) {
+      translationUpdateData.features = updateData.features;
+    }
     if (updateData.traction !== undefined) {
       translationUpdateData.traction = updateData.traction;
       projectUpdateData.traction = updateData.traction;
@@ -102,6 +106,7 @@ export async function updateProjectHandler(
             title: (updateData.title || project.title || ""),
             shortDescription: (updateData.shortDescription || project.shortDescription || ""),
             pitch: (updateData.pitch || project.pitch || ""),
+            features: updateData.features ?? null,
             traction: updateData.traction ?? project.traction,
             investmentDetails: updateData.investmentDetails ?? project.investmentDetails,
           }

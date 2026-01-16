@@ -8,6 +8,7 @@ export const createProjectSchema = {
   title: z.string().min(1).max(100).describe("Project title"),
   shortDescription: z.string().min(1).max(200).describe("Short description (max 200 chars)"),
   pitch: z.string().optional().describe("General pitch describing the project's vision, problem being solved, solution, and value proposition. This is the main narrative about what the project does and why it matters."),
+  features: z.string().max(10000).optional().describe("Key features and functionality of the project (max 10000 chars)"),
   status: z.enum(["IDEA", "MVP", "BETA", "LAUNCHED", "PAUSED"]).optional().describe("Project status"),
   tags: z.array(z.string()).optional().describe("Project tags"),
   lookingFor: z.array(z.string()).optional().describe("Roles you're looking for"),
@@ -57,6 +58,7 @@ export async function createProjectHandler(
             title: input.title,
             shortDescription: input.shortDescription,
             pitch: input.pitch || "",
+            features: input.features,
             traction: input.traction,
             investmentDetails: input.needsInvestment ? input.investmentDetails : null,
           }

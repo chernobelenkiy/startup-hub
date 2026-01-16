@@ -36,6 +36,7 @@ export const translationFieldsSchema = z.object({
     .string()
     .min(20, "Pitch must be at least 20 characters")
     .max(10000, "Pitch must be at most 10000 characters"),
+  features: z.string().max(10000, "Features must be at most 10000 characters").optional().nullable(),
   traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
@@ -45,6 +46,7 @@ export const optionalTranslationFieldsSchema = z.object({
   title: z.string().max(100).optional(),
   shortDescription: z.string().max(280).optional(),
   pitch: z.string().max(10000).optional(),
+  features: z.string().max(10000).optional().nullable(),
   traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
@@ -111,6 +113,7 @@ export const updateTranslationSchema = z.object({
   title: z.string().min(3).max(100).optional(),
   shortDescription: z.string().min(10).max(280).optional(),
   pitch: z.string().min(20).max(10000).optional(),
+  features: z.string().max(10000).optional().nullable(),
   traction: z.string().max(10000).optional().nullable(),
   investmentDetails: z.string().max(1000).optional().nullable(),
 });
