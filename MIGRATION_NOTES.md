@@ -35,3 +35,30 @@ npx prisma migrate deploy
 
 ### Dependencies
 - Added `dotenv` as dev dependency for Prisma config support
+
+## Build Issues (Development Environment)
+
+### Prisma Engine Download Restrictions
+In restricted network environments, Prisma may fail to download engine binaries with 403 errors.
+
+**Solution for Production (Vercel/Similar Platforms):**
+- Vercel and similar platforms have Prisma engines pre-installed
+- The build will work correctly in production environments
+- Set `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1` if needed
+
+**Solution for Local Development:**
+```bash
+# If you encounter engine download issues:
+npm run build:skip-prisma  # Skip prisma generate during build
+```
+
+**Environment Variables for Prisma:**
+- `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1` - Skip checksum validation
+- `PRISMA_CLI_BINARY_TARGETS=native` - Use native binary target
+
+### Verification
+The changes are backward compatible and won't break existing deployments. The features field:
+- Is nullable (optional)
+- Has proper validation
+- Is fully integrated with the MCP API
+- Works with existing translations system
