@@ -29,6 +29,7 @@ interface ProjectTranslation {
   title: string;
   shortDescription: string;
   pitch: string;
+  features: string | null;
   traction: string | null;
   investmentDetails: string | null;
 }

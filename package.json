@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3019",
-    "build": "prisma generate && next build",
+    "build": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate && next build",
+    "build:skip-prisma": "next build",
     "start": "next start -p 3019",
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prisma:generate": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

@@ -29,6 +29,7 @@ interface TranslationData {
   title: string;
   shortDescription: string;
   pitch: string;
+  features: string;
   traction: string;
   investmentDetails: string;
 }
@@ -41,6 +42,7 @@ interface ProjectFormInitialData extends Partial<CreateProjectInput> {
     title: string;
     shortDescription: string;
     pitch: string;
+    features: string | null;
     traction: string | null;
     investmentDetails: string | null;
   }>;
@@ -57,6 +59,7 @@ const emptyTranslation: TranslationData = {
   title: "",
   shortDescription: "",
   pitch: "",
+  features: "",
   traction: "",
   investmentDetails: "",
 };
@@ -92,6 +95,7 @@ export function ProjectForm({
             title: trans.title || "",
             shortDescription: trans.shortDescription || "",
             pitch: trans.pitch || "",
+            features: trans.features || "",
             traction: trans.traction || "",
             investmentDetails: trans.investmentDetails || "",
           };
@@ -106,6 +110,7 @@ export function ProjectForm({
         title: initialData.title || "",
         shortDescription: initialData.shortDescription || "",
         pitch: initialData.pitch || "",
+        features: "",
         traction: initialData.traction || "",
         investmentDetails: initialData.investmentDetails || "",
       };
@@ -280,6 +285,7 @@ export function ProjectForm({
           title: translations[lang].title.trim(),
           shortDescription: translations[lang].shortDescription.trim(),
           pitch: translations[lang].pitch.trim(),
+          features: translations[lang].features.trim() || null,
           traction: translations[lang].traction.trim() || null,
           investmentDetails: needsInvestment
             ? translations[lang].investmentDetails.trim() || null
@@ -380,6 +386,31 @@ export function ProjectForm({
               <span className="text-destructive">{langErrors.pitch}</span>
             )}
             <span className="text-muted-foreground ml-auto">{trans.pitch.length}/10000</span>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="space-y-2">
+          <Label htmlFor={`features-${lang}`}>{t("features")}</Label>
+          <Textarea
+            id={`features-${lang}`}
+            value={trans.features}
+            onChange={(e) => updateTranslation(lang, "features", e.target.value)}
+            placeholder={
+              lang === "en"
+                ? "List key features and functionality of your project..."
+                : "Перечислите ключевые функции и возможности вашего проекта..."
+            }
+            maxLength={10000}
+            className="min-h-[120px]"
+          />
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">
+              {lang === "en"
+                ? "Describe the main features and capabilities"
+                : "Опишите основной функционал и возможности"}
+            </span>
+            <span className="text-muted-foreground">{trans.features.length}/10000</span>
           </div>
         </div>
 

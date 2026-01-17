@@ -157,6 +157,7 @@ model ProjectTranslation {
   title             String
   shortDescription  String   @db.VarChar(280)
   pitch             String   @db.Text
+  features          String?  @db.Text // Max 10k characters, validated in application layer
   traction          String?  @db.Text
   investmentDetails String?
 
