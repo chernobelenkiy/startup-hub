@@ -394,6 +394,16 @@
       "error": "Failed to send message. Please try again."
     }
   },
+  "cookieConsent": {
+    "title": "We use cookies",
+    "description": "We use cookies and similar technologies to improve your experience, analyze traffic, and personalize content. By continuing to use our site, you agree to our",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "acceptAll": "Accept All",
+    "declineOptional": "Only Essential",
+    "close": "Close"
+  },
   "mcp": {
     "title": "AI API Documentation",
     "subtitle": "Integrate Startup Hub with AI assistants",

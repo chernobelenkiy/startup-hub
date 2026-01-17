@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/components/providers";
+import { CookieConsent } from "@/components/cookie-consent";
 import "../globals.css";
 
 const inter = Inter({
@@ -75,6 +76,7 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             {children}
             <Toaster />
+            <CookieConsent />
           </NextIntlClientProvider>
         </SessionProvider>
       </body>
