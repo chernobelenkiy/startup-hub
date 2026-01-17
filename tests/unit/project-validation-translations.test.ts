@@ -192,22 +192,22 @@ describe("Project Translation Validation Schemas", () => {
       }
     });
 
-    it("rejects pitch longer than 5000 characters", () => {
+    it("rejects pitch longer than 10000 characters", () => {
       const result = translationFieldsSchema.safeParse({
         ...validTranslation,
-        pitch: "a".repeat(5001),
+        pitch: "a".repeat(10001),
       });
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.flatten().fieldErrors.pitch?.[0]).toContain("5000 characters");
+        expect(result.error.flatten().fieldErrors.pitch?.[0]).toContain("10000 characters");
       }
     });
 
-    it("accepts pitch with exactly 5000 characters", () => {
+    it("accepts pitch with exactly 10000 characters", () => {
       const result = translationFieldsSchema.safeParse({
         ...validTranslation,
-        pitch: "a".repeat(5000),
+        pitch: "a".repeat(10000),
       });
 
       expect(result.success).toBe(true);

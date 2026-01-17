@@ -1,22 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-
-/**
- * Filter option with count of matching projects
- */
-interface FilterOption {
-  value: string;
-  count: number;
-}
-
-/**
- * Response type for the filters endpoint
- */
-interface FiltersResponse {
-  tags: FilterOption[];
-  roles: FilterOption[];
-  statuses: FilterOption[];
-}
+import type { FilterOption, FiltersResponse } from "@/lib/types/filters";
 
 /**
  * GET /api/filters

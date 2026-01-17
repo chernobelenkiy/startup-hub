@@ -1,23 +1,10 @@
 "use client";
 
 import useSWR from "swr";
+import type { FilterOption, FiltersResponse } from "@/lib/types/filters";
 
-/**
- * Filter option with count of matching projects
- */
-export interface FilterOption {
-  value: string;
-  count: number;
-}
-
-/**
- * Response type for the filters API endpoint
- */
-export interface FiltersResponse {
-  tags: FilterOption[];
-  roles: FilterOption[];
-  statuses: FilterOption[];
-}
+// Re-export types for backward compatibility
+export type { FilterOption, FiltersResponse } from "@/lib/types/filters";
 
 /**
  * Fetcher function for SWR

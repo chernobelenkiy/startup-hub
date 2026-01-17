@@ -4,7 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { ProjectGrid } from "@/components/home";
-import { ProjectCardSkeleton } from "@/components/project";
+import { ProjectGridSkeleton } from "@/components/project";
 import { UserMenu } from "@/components/auth";
 import { McpPopup } from "@/components/mcp";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -127,16 +127,6 @@ function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) {
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function ProjectGridSkeleton() {
-  return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <ProjectCardSkeleton key={i} />
-      ))}
     </div>
   );
 }

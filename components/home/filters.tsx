@@ -10,18 +10,6 @@ import { useFilterOptions } from "@/lib/hooks/use-filter-options";
 import type { ProjectStatus } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-
-/**
- * English status labels for search filters
- */
-const STATUS_LABELS: Record<string, string> = {
-  IDEA: "Idea",
-  MVP: "MVP",
-  BETA: "Beta",
-  LAUNCHED: "Launched",
-  PAUSED: "Paused",
-};
-
 interface FiltersProps {
   selectedStatus: ProjectStatus[];
   selectedRoles: string[];
@@ -50,17 +38,27 @@ export function Filters({
   className,
 }: FiltersProps) {
   const t = useTranslations();
+  const tStatus = useTranslations("projectStatus");
 
   // Fetch dynamic filter options from database
   const { tags, roles, statuses, isLoading } = useFilterOptions();
+
+  // Get translated status label
+  const getStatusLabel = (statusValue: string): string => {
+    try {
+      return tStatus(statusValue as ProjectStatus);
+    } catch {
+      return statusValue;
+    }
+  };
 
   // Build status options with counts
   const statusOptions: MultiSelectOption[] = statuses.map((status) => ({
     value: status.value,
     label:
       status.count > 0
-        ? `${STATUS_LABELS[status.value] || status.value} (${status.count})`
-        : STATUS_LABELS[status.value] || status.value,
+        ? `${getStatusLabel(status.value)} (${status.count})`
+        : getStatusLabel(status.value),
   }));
 
   // Build role options with counts (user-defined roles)

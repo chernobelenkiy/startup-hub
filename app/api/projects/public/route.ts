@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { z } from "zod";
-import { getBestTranslation } from "@/lib/translations/project-translations";
+import { getBestTranslation, DEFAULT_LANGUAGE } from "@/lib/translations/project-translations";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 /**
  * Query parameters schema for public project listing
@@ -31,11 +33,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const [{ auth }, { db }] = await Promise.all([
-      import("@/lib/auth"),
-      import("@/lib/db"),
-    ]);
-
     // Check for authenticated user (optional for this endpoint)
     // Wrap in try-catch to handle auth failures gracefully
     let userId: string | undefined;
@@ -60,7 +57,7 @@ export async function GET(request: NextRequest) {
       sort: searchParams.get("sort") || "newest",
       cursor: searchParams.get("cursor") || undefined,
       limit: searchParams.get("limit") || 20,
-      locale: searchParams.get("locale") || headerLocale || "ru",
+      locale: searchParams.get("locale") || headerLocale || DEFAULT_LANGUAGE,
     });
 
     if (!queryResult.success) {
@@ -81,7 +78,10 @@ export async function GET(request: NextRequest) {
     const tagsArray = tags ? tags.split(",").filter(Boolean) : [];
 
     // Build where clause
-    const where: Prisma.ProjectWhereInput = {};
+    const where: Prisma.ProjectWhereInput = {
+      // Only show visible projects in public listings
+      visible: true,
+    };
 
     // Search filter - search across translations table as well
     if (search) {
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     // Transform projects with resolved translations
     const resultProjects = rawProjects.map((project) => {
       const { likes, translations, ...rest } = project;
-      const translation = getBestTranslation(translations, locale ?? "ru");
+      const translation = getBestTranslation(translations, locale ?? DEFAULT_LANGUAGE);
 
       return {
         id: rest.id,

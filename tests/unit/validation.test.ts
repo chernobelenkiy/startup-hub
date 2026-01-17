@@ -349,25 +349,25 @@ describe("Project Validation Schemas", () => {
       }
     });
 
-    // TC-PROJ-005: Pitch 5000 character limit
-    it("enforces pitch maximum of 5000 characters", () => {
+    // TC-PROJ-005: Pitch 10000 character limit
+    it("enforces pitch maximum of 10000 characters", () => {
       const result = createProjectSchema.safeParse({
         ...validProjectData,
-        pitch: "a".repeat(5001),
+        pitch: "a".repeat(10001),
       });
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.flatten().fieldErrors.pitch?.[0]).toContain(
-          "5000 characters"
+          "10000 characters"
         );
       }
     });
 
-    it("accepts pitch with exactly 5000 characters", () => {
+    it("accepts pitch with exactly 10000 characters", () => {
       const result = createProjectSchema.safeParse({
         ...validProjectData,
-        pitch: "a".repeat(5000),
+        pitch: "a".repeat(10000),
       });
 
       expect(result.success).toBe(true);

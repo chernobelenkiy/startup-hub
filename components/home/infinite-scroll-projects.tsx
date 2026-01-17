@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
-import { ProjectCard } from "@/components/project/project-card";
-import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
+import { ProjectCard, ProjectCardSkeleton, ProjectGridSkeleton } from "@/components/project";
 import { EmptyState } from "./empty-state";
 import type { ProjectFilters } from "@/lib/hooks";
 import type { ProjectStatus } from "@/lib/db";
@@ -33,6 +32,7 @@ interface Project {
 
 interface InfiniteScrollProjectsProps {
   filters: ProjectFilters;
+  hasActiveFilters?: boolean;
   initialProjects?: Project[];
   initialCursor?: string | null;
   initialHasMore?: boolean;
@@ -44,6 +44,7 @@ interface InfiniteScrollProjectsProps {
  */
 export function InfiniteScrollProjects({
   filters,
+  hasActiveFilters: hasActiveFiltersProp,
   initialProjects = [],
   initialCursor = null,
   initialHasMore = true,
@@ -59,15 +60,14 @@ export function InfiniteScrollProjects({
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const hasActiveFilters = useMemo(() => {
-    return (
-      filters.search !== "" ||
-      filters.status.length > 0 ||
-      filters.roles.length > 0 ||
-      filters.needsInvestment !== null ||
-      filters.tags.length > 0
-    );
-  }, [filters]);
+  // Use prop if provided, otherwise compute from filters
+  const hasActiveFilters = hasActiveFiltersProp ?? (
+    filters.search !== "" ||
+    filters.status.length > 0 ||
+    filters.roles.length > 0 ||
+    filters.needsInvestment !== null ||
+    filters.tags.length > 0
+  );
 
   // Stable string representations for dependency tracking
   const statusKey = filters.status.join(",");
@@ -206,13 +206,7 @@ export function InfiniteScrollProjects({
 
   // Initial loading state
   if (isInitialLoad) {
-    return (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <ProjectCardSkeleton key={i} />
-        ))}
-      </div>
-    );
+    return <ProjectGridSkeleton />;
   }
 
   // Error state

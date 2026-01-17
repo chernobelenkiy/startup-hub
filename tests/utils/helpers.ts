@@ -520,3 +520,175 @@ export function createMockStatusesGroupByResult(
     _count: { status: s.count },
   }));
 }
+
+// ============================================
+// Mock Comment Helpers
+// ============================================
+
+export interface MockComment {
+  id: string;
+  content: string;
+  projectId: string;
+  authorId: string;
+  parentId: string | null;
+  likesCount: number;
+  isEdited: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  author?: {
+    id: string;
+    name: string | null;
+    avatarUrl: string | null;
+  };
+  replies?: MockComment[];
+}
+
+/**
+ * Create a mock comment for testing
+ */
+export function createMockComment(
+  overrides?: Partial<MockComment>
+): MockComment {
+  return {
+    id: "test-comment-id",
+    content: "This is a test comment with enough content",
+    projectId: "test-project-id",
+    authorId: "test-user-id",
+    parentId: null,
+    likesCount: 0,
+    isEdited: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    author: {
+      id: "test-user-id",
+      name: "Test User",
+      avatarUrl: null,
+    },
+    replies: [],
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock comment with nested replies
+ */
+export function createMockCommentWithReplies(
+  depth: number = 1,
+  overrides?: Partial<MockComment>
+): MockComment {
+  const comment = createMockComment(overrides);
+  
+  if (depth > 0) {
+    comment.replies = [
+      createMockCommentWithReplies(depth - 1, {
+        id: `${comment.id}-reply`,
+        parentId: comment.id,
+        authorId: "other-user-id",
+        author: {
+          id: "other-user-id",
+          name: "Other User",
+          avatarUrl: null,
+        },
+      }),
+    ];
+  }
+  
+  return comment;
+}
+
+// ============================================
+// Mock User with Enhanced Profile Helpers
+// ============================================
+
+export interface MockUserWithProfile extends MockUser {
+  bio?: string | null;
+  title?: string | null;
+  company?: string | null;
+  socialLinks?: {
+    linkedin?: string;
+    github?: string;
+    telegram?: string;
+    instagram?: string;
+    website?: string;
+  } | null;
+  openToContact?: boolean;
+  avatarUrl?: string | null;
+  createdAt?: Date;
+}
+
+/**
+ * Create a mock user with enhanced profile for testing
+ */
+export function createMockUserWithProfile(
+  overrides?: Partial<MockUserWithProfile>
+): MockUserWithProfile {
+  return {
+    id: "test-user-id",
+    email: "test@example.com",
+    name: "Test User",
+    bio: null,
+    title: null,
+    company: null,
+    socialLinks: null,
+    openToContact: false,
+    avatarUrl: null,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock user with full profile data
+ */
+export function createMockUserWithFullProfile(
+  overrides?: Partial<MockUserWithProfile>
+): MockUserWithProfile {
+  return createMockUserWithProfile({
+    bio: "Passionate entrepreneur building the future",
+    title: "CEO & Co-founder",
+    company: "TechStartup Inc.",
+    socialLinks: {
+      linkedin: "https://linkedin.com/in/testuser",
+      github: "https://github.com/testuser",
+      telegram: "testuser",
+      instagram: "testuser_tech",
+      website: "https://testuser.com",
+    },
+    openToContact: true,
+    avatarUrl: "https://example.com/avatar.jpg",
+    ...overrides,
+  });
+}
+
+// ============================================
+// Mock Project with Visibility Helpers
+// ============================================
+
+export interface MockProjectWithVisibility extends MockProject {
+  visible: boolean;
+}
+
+/**
+ * Create a mock project with visibility field
+ */
+export function createMockProjectWithVisibility(
+  overrides?: Partial<MockProjectWithVisibility>
+): MockProjectWithVisibility {
+  return {
+    ...createMockProject(overrides),
+    visible: true,
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock hidden project
+ */
+export function createMockHiddenProject(
+  overrides?: Partial<MockProjectWithVisibility>
+): MockProjectWithVisibility {
+  return createMockProjectWithVisibility({
+    visible: false,
+    ...overrides,
+  });
+}

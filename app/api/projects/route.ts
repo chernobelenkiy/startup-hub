@@ -8,6 +8,7 @@ import {
 import { generateSlug } from "@/lib/utils";
 import {
   resolveProjectTranslation,
+  DEFAULT_LANGUAGE,
   type SupportedLanguage,
 } from "@/lib/translations/project-translations";
 
@@ -26,8 +27,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's locale from header or default to "ru"
-    const locale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0] || "ru";
+    // Get user's locale from header or default to configured fallback
+    const locale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0] || DEFAULT_LANGUAGE;
 
     const projects = await db.project.findMany({
       where: {

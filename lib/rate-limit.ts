@@ -5,6 +5,8 @@
  * Can be upgraded to Upstash Redis for production/distributed environments.
  */
 
+import { createInMemoryStore, type StoreEntry } from "@/lib/utils/in-memory-store";
+
 /**
  * Rate limit configuration
  */
@@ -34,11 +36,9 @@ export interface RateLimitStatus {
 /**
  * Internal storage for rate limit tracking
  */
-interface RateLimitEntry {
+interface RateLimitEntry extends StoreEntry {
   /** Request timestamps within the window */
   timestamps: number[];
-  /** When this entry was last accessed (for cleanup) */
-  lastAccess: number;
 }
 
 /**
@@ -53,42 +53,10 @@ export const DEFAULT_RATE_LIMIT: RateLimitConfig = {
  * In-memory store for rate limit data
  * Key: token ID (not the actual token for security)
  */
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-/**
- * Cleanup interval in milliseconds (5 minutes)
- */
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-
-/**
- * Entry expiration time in milliseconds (10 minutes)
- */
-const ENTRY_EXPIRATION_MS = 10 * 60 * 1000;
-
-/**
- * Last cleanup timestamp
- */
-let lastCleanup = Date.now();
-
-/**
- * Clean up expired entries from the store
- */
-function cleanupExpiredEntries(): void {
-  const now = Date.now();
-
-  // Only run cleanup periodically
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) {
-    return;
-  }
-
-  lastCleanup = now;
-
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now - entry.lastAccess > ENTRY_EXPIRATION_MS) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
+const rateLimitStore = createInMemoryStore<RateLimitEntry>({
+  cleanupIntervalMs: 5 * 60 * 1000, // 5 minutes
+  entryExpirationMs: 10 * 60 * 1000, // 10 minutes
+});
 
 /**
  * Check rate limit for a given identifier (typically token ID)
@@ -104,10 +72,7 @@ export function checkRateLimit(
   const now = Date.now();
   const windowStart = now - config.windowMs;
 
-  // Cleanup old entries periodically
-  cleanupExpiredEntries();
-
-  // Get or create entry
+  // Get or create entry (store handles cleanup automatically)
   let entry = rateLimitStore.get(identifier);
 
   if (!entry) {
@@ -161,6 +126,13 @@ export function checkRateLimit(
  */
 export function resetRateLimit(identifier: string): void {
   rateLimitStore.delete(identifier);
+}
+
+/**
+ * Clear all rate limit entries (useful for testing)
+ */
+export function clearAllRateLimits(): void {
+  rateLimitStore.clear();
 }
 
 /**

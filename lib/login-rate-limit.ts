@@ -6,6 +6,8 @@
  * 5 failed attempts = 15 minute lockout
  */
 
+import { createInMemoryStore, type StoreEntry } from "@/lib/utils/in-memory-store";
+
 /**
  * Login rate limit configuration
  */
@@ -33,13 +35,11 @@ export interface LoginRateLimitStatus {
 /**
  * Internal storage for login attempt tracking
  */
-interface LoginAttemptEntry {
+interface LoginAttemptEntry extends StoreEntry {
   /** Number of failed attempts */
   failedAttempts: number;
   /** When the lockout started (if locked) */
   lockoutStartedAt: number | null;
-  /** When this entry was last updated */
-  lastAttemptAt: number;
 }
 
 /**
@@ -54,43 +54,10 @@ export const DEFAULT_LOGIN_RATE_LIMIT: LoginRateLimitConfig = {
  * In-memory store for login attempt tracking
  * Key: IP address or email
  */
-const loginAttemptStore = new Map<string, LoginAttemptEntry>();
-
-/**
- * Cleanup interval in milliseconds (10 minutes)
- */
-const CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
-
-/**
- * Entry expiration time in milliseconds (30 minutes)
- */
-const ENTRY_EXPIRATION_MS = 30 * 60 * 1000;
-
-/**
- * Last cleanup timestamp
- */
-let lastCleanup = Date.now();
-
-/**
- * Clean up expired entries from the store
- */
-function cleanupExpiredEntries(): void {
-  const now = Date.now();
-
-  // Only run cleanup periodically
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) {
-    return;
-  }
-
-  lastCleanup = now;
-
-  for (const [key, entry] of loginAttemptStore.entries()) {
-    // Remove entries that haven't been accessed in a while
-    if (now - entry.lastAttemptAt > ENTRY_EXPIRATION_MS) {
-      loginAttemptStore.delete(key);
-    }
-  }
-}
+const loginAttemptStore = createInMemoryStore<LoginAttemptEntry>({
+  cleanupIntervalMs: 10 * 60 * 1000, // 10 minutes
+  entryExpirationMs: 30 * 60 * 1000, // 30 minutes
+});
 
 /**
  * Check if a login attempt is allowed for the given identifier
@@ -105,9 +72,7 @@ export function checkLoginRateLimit(
 ): LoginRateLimitStatus {
   const now = Date.now();
 
-  // Cleanup old entries periodically
-  cleanupExpiredEntries();
-
+  // Get entry (store handles cleanup automatically)
   const entry = loginAttemptStore.get(identifier);
 
   // No previous attempts
@@ -172,7 +137,7 @@ export function recordFailedLoginAttempt(
     entry = {
       failedAttempts: 0,
       lockoutStartedAt: null,
-      lastAttemptAt: now,
+      lastAccess: now,
     };
     loginAttemptStore.set(identifier, entry);
   }
@@ -188,7 +153,7 @@ export function recordFailedLoginAttempt(
 
   // Increment failed attempts
   entry.failedAttempts += 1;
-  entry.lastAttemptAt = now;
+  entry.lastAccess = now;
 
   // Check if we should start a lockout
   if (entry.failedAttempts >= config.maxAttempts) {
@@ -228,6 +193,13 @@ export function recordSuccessfulLogin(identifier: string): void {
  */
 export function resetLoginRateLimit(identifier: string): void {
   loginAttemptStore.delete(identifier);
+}
+
+/**
+ * Clear all login rate limit entries (useful for testing)
+ */
+export function clearAllLoginRateLimits(): void {
+  loginAttemptStore.clear();
 }
 
 /**

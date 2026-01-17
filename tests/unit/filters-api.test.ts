@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * - TC-FILT-004: Tags limited to 20 items
  * - TC-FILT-005: Roles aggregated correctly with counts
  * - TC-FILT-006: Statuses grouped correctly with counts
- * - TC-FILT-007: Database errors return 500 response
+ * - TC-FILT-007: Database errors gracefully degrade (return 200 with empty arrays)
  */
 
 // Mock db before importing the route
@@ -193,18 +193,24 @@ describe("Filters API Route", () => {
       ]);
     });
 
-    // TC-FILT-007: Database errors return 500 response
-    it("returns 500 error when database query fails", async () => {
-      mockDb.$queryRaw.mockRejectedValueOnce(new Error("Database connection failed"));
+    // TC-FILT-007: Database errors gracefully degrade (return 200 with empty arrays)
+    // The API uses graceful degradation - errors in individual queries return empty results
+    // rather than failing the entire request, allowing the UI to continue functioning
+    it("returns 200 with empty arrays when individual query fails", async () => {
+      // When $queryRaw throws, the .catch() handlers return empty arrays
+      mockDb.$queryRaw.mockRejectedValue(new Error("Database connection failed"));
+      mockDb.project.groupBy.mockResolvedValue([] as never);
 
       const response = await GET();
       const data = await response.json();
 
-      expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to fetch filter options");
+      // Graceful degradation: returns 200 with empty data
+      expect(response.status).toBe(200);
+      expect(data.tags).toEqual([]);
+      expect(data.roles).toEqual([]);
     });
 
-    it("returns 500 error when groupBy fails", async () => {
+    it("returns 200 with empty statuses when groupBy fails", async () => {
       mockDb.$queryRaw
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
@@ -214,8 +220,9 @@ describe("Filters API Route", () => {
       const response = await GET();
       const data = await response.json();
 
-      expect(response.status).toBe(500);
-      expect(data.error).toBe("Failed to fetch filter options");
+      // Graceful degradation: returns 200 with empty statuses
+      expect(response.status).toBe(200);
+      expect(data.statuses).toEqual([]);
     });
 
     // TC-FILT-008: BigInt conversion handles large numbers

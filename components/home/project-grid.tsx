@@ -6,7 +6,7 @@ import { SearchInput } from "./search-input";
 import { Filters } from "./filters";
 import { SortDropdown } from "./sort-dropdown";
 import { InfiniteScrollProjects } from "./infinite-scroll-projects";
-import { ProjectCardSkeleton } from "@/components/project/project-card-skeleton";
+import { ProjectGridSkeleton } from "@/components/project";
 
 /**
  * Main project grid with filters, search, and infinite scroll
@@ -53,21 +53,8 @@ export function ProjectGrid() {
 
       {/* Project Cards with Infinite Scroll */}
       <Suspense fallback={<ProjectGridSkeleton />}>
-        <InfiniteScrollProjects filters={filters} />
+        <InfiniteScrollProjects filters={filters} hasActiveFilters={hasActiveFilters} />
       </Suspense>
-    </div>
-  );
-}
-
-/**
- * Skeleton fallback for project grid
- */
-function ProjectGridSkeleton() {
-  return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <ProjectCardSkeleton key={i} />
-      ))}
     </div>
   );
 }

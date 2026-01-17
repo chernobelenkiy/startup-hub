@@ -8,10 +8,62 @@ export const getProjectSchema = {
 
 type GetProjectInput = z.infer<z.ZodObject<typeof getProjectSchema>>;
 
+interface ProjectOwner {
+  id: string;
+  name: string | null;
+  image: string | null;
+  bio: string | null;
+  title: string | null;
+  company: string | null;
+  socialLinks: {
+    linkedin?: string;
+    github?: string;
+    telegram?: string;
+    instagram?: string;
+    website?: string;
+  } | null;
+  openToContact: boolean;
+}
+
+interface ProjectResponse {
+  project: {
+    id: string;
+    slug: string;
+    screenshotUrl: string | null;
+    websiteUrl: string | null;
+    status: string;
+    estimatedLaunch: Date | null;
+    needsInvestment: boolean;
+    teamMembers: unknown;
+    lookingFor: string[];
+    tags: string[];
+    likesCount: number;
+    visible: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    owner: ProjectOwner;
+    translations: Record<string, {
+      title: string;
+      shortDescription: string;
+      pitch: string;
+      features: string | null;
+      traction: string | null;
+      investmentDetails: string | null;
+    }>;
+    availableLanguages: string[];
+    title: string | null;
+    shortDescription: string | null;
+    pitch: string | null;
+    traction: string | null;
+    investmentDetails: string | null;
+    language: string;
+  };
+}
+
 export async function getProjectHandler(
   input: GetProjectInput,
   userId: string | null
-): Promise<McpResponse> {
+): Promise<McpResponse<ProjectResponse>> {
   try {
     const project = await prisma.project.findFirst({
       where: {
@@ -22,7 +74,16 @@ export async function getProjectHandler(
       },
       include: {
         owner: {
-          select: { id: true, name: true, image: true }
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            bio: true,
+            title: true,
+            company: true,
+            socialLinks: true,
+            openToContact: true,
+          }
         },
         translations: true
       }
@@ -53,6 +114,9 @@ export async function getProjectHandler(
       };
     }
 
+    // Cast socialLinks from Prisma Json type
+    const ownerSocialLinks = project.owner.socialLinks as ProjectOwner['socialLinks'];
+
     return mcpSuccess({
       project: {
         id: project.id,
@@ -67,9 +131,20 @@ export async function getProjectHandler(
         lookingFor: project.lookingFor,
         tags: project.tags,
         likesCount: project.likesCount,
+        visible: project.visible,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        owner: project.owner,
+        // Owner with enhanced profile data including social links
+        owner: {
+          id: project.owner.id,
+          name: project.owner.name,
+          image: project.owner.image,
+          bio: project.owner.bio,
+          title: project.owner.title,
+          company: project.owner.company,
+          socialLinks: ownerSocialLinks,
+          openToContact: project.owner.openToContact,
+        },
         // Translations - all available languages
         translations: translationsByLanguage,
         availableLanguages: project.translations.map(t => t.language),

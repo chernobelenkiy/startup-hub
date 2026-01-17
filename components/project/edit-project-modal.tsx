@@ -157,8 +157,8 @@ export function EditProjectModal({
               title: fullProject.title || "",
               shortDescription: fullProject.shortDescription || "",
               pitch: fullProject.pitch || "",
-              traction: fullProject.traction,
-              investmentDetails: fullProject.investmentDetails,
+              traction: fullProject.traction || undefined,
+              investmentDetails: fullProject.investmentDetails || undefined,
               language: fullProject.language,
             }}
             onSubmit={handleSubmit}

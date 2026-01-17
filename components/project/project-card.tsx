@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Users, Globe } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { LikeButton } from "./like-button";
+import { UserProfileModal } from "@/components/profile";
 import { cn } from "@/lib/utils";
+import { createRoleTranslator } from "@/lib/utils/roles";
 import type { ProjectStatus } from "@/lib/db";
 
 interface ProjectCardProps {
@@ -23,6 +26,11 @@ interface ProjectCardProps {
     likesCount: number;
     teamMembers: unknown[];
     isLiked?: boolean;
+    owner?: {
+      id: string;
+      name: string | null;
+      image?: string | null;
+    };
   };
   className?: string;
 }
@@ -56,19 +64,12 @@ function getPlaceholderGradient(id: string): string {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
-const PREDEFINED_ROLES = ["developer", "designer", "marketer", "productManager", "cofounder", "investor", "advisor"] as const;
-type PredefinedRole = typeof PREDEFINED_ROLES[number];
-
 export function ProjectCard({ project, className }: ProjectCardProps) {
   const t = useTranslations();
   const tRoles = useTranslations("roles");
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
-  const translateRole = (role: string): string => {
-    if (PREDEFINED_ROLES.includes(role as PredefinedRole)) {
-      return tRoles(role as PredefinedRole);
-    }
-    return role;
-  };
+  const translateRole = createRoleTranslator(tRoles);
 
   const visibleTags = project.tags.slice(0, MAX_VISIBLE_TAGS);
   const remainingTagsCount = project.tags.length - MAX_VISIBLE_TAGS;
@@ -78,134 +79,175 @@ export function ProjectCard({ project, className }: ProjectCardProps) {
     ? project.teamMembers.length
     : 0;
 
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (project.owner?.id) {
+      setProfileUserId(project.owner.id);
+    }
+  };
+
   return (
-    <Link
-      href={`/projects/${project.slug}`}
-      className={cn(
-        "group block rounded-lg border border-border bg-[#111611] overflow-hidden",
-        "transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
-        "hover:-translate-y-0.5",
-        className
-      )}
-    >
-      {/* Screenshot / Placeholder */}
-      <div className="relative aspect-video w-full overflow-hidden">
-        {project.screenshotUrl ? (
-          <img
-            src={project.screenshotUrl}
-            alt={`Screenshot of ${project.title}`}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div
-            className={cn(
-              "h-full w-full bg-gradient-to-br",
-              getPlaceholderGradient(project.id)
-            )}
-          />
+    <>
+      <Link
+        href={`/projects/${project.slug}`}
+        className={cn(
+          "group block rounded-lg border border-border bg-[#111611] overflow-hidden",
+          "transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
+          "hover:-translate-y-0.5",
+          className
         )}
+      >
+        {/* Screenshot / Placeholder */}
+        <div className="relative aspect-video w-full overflow-hidden">
+          {project.screenshotUrl ? (
+            <img
+              src={project.screenshotUrl}
+              alt={`Screenshot of ${project.title}`}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div
+              className={cn(
+                "h-full w-full bg-gradient-to-br",
+                getPlaceholderGradient(project.id)
+              )}
+            />
+          )}
 
-        {/* Status badge overlay */}
-        <div className="absolute left-3 top-3">
-          <ProjectStatusBadge status={project.status} />
+          {/* Status badge overlay */}
+          <div className="absolute left-3 top-3">
+            <ProjectStatusBadge status={project.status} />
+          </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {/* Title */}
-        <h3 className="mb-2 line-clamp-1 text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-          {project.title}
-        </h3>
+        {/* Content */}
+        <div className="p-4">
+          {/* Author */}
+          {project.owner && (
+            <button
+              type="button"
+              onClick={handleAuthorClick}
+              className="flex items-center gap-2 mb-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="size-5 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary overflow-hidden">
+                {project.owner.image ? (
+                  <img
+                    src={project.owner.image}
+                    alt={project.owner.name || ""}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  project.owner.name?.[0]?.toUpperCase() || "?"
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {project.owner.name || "Anonymous"}
+              </span>
+            </button>
+          )}
 
-        {/* Description */}
-        <p className="mb-3 line-clamp-2 text-sm text-muted">
-          {project.shortDescription}
-        </p>
+          {/* Title */}
+          <h3 className="mb-2 line-clamp-1 text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+            {project.title}
+          </h3>
 
-        {/* Tags */}
-        {project.tags.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {visibleTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="outline"
-                className="border-primary/30 bg-primary/10 text-primary text-xs"
-              >
-                {tag}
-              </Badge>
-            ))}
-            {remainingTagsCount > 0 && (
-              <Badge
-                variant="outline"
-                className="border-border bg-surface-elevated text-muted text-xs"
-              >
-                +{remainingTagsCount}
-              </Badge>
-            )}
-          </div>
-        )}
+          {/* Description */}
+          <p className="mb-3 line-clamp-2 text-sm text-muted">
+            {project.shortDescription}
+          </p>
 
-        {/* Looking for roles */}
-        {project.lookingFor.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1">
-              {t("project.lookingFor")}:
-            </span>
-            {visibleRoles.map((role) => (
-              <Badge
-                key={role}
-                variant="outline"
-                className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs"
-              >
-                {translateRole(role)}
-              </Badge>
-            ))}
-            {remainingRolesCount > 0 && (
-              <Badge
-                variant="outline"
-                className="border-border bg-surface-elevated text-muted text-xs"
-              >
-                +{remainingRolesCount}
-              </Badge>
-            )}
-          </div>
-        )}
+          {/* Tags */}
+          {project.tags.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {visibleTags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="border-primary/30 bg-primary/10 text-primary text-xs"
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {remainingTagsCount > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-border bg-surface-elevated text-muted text-xs"
+                >
+                  +{remainingTagsCount}
+                </Badge>
+              )}
+            </div>
+          )}
 
-        {/* Footer: Team size, website, and likes */}
-        <div className="flex items-center justify-between pt-2 border-t border-border-muted">
-          {/* Team size */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-muted" aria-label={`Team size: ${teamSize} members`}>
-              <Users className="h-4 w-4" aria-hidden="true" />
-              <span className="text-xs">{teamSize}</span>
+          {/* Looking for roles */}
+          {project.lookingFor.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              <span className="text-xs text-muted-foreground mr-1">
+                {t("project.lookingFor")}:
+              </span>
+              {visibleRoles.map((role) => (
+                <Badge
+                  key={role}
+                  variant="outline"
+                  className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs"
+                >
+                  {translateRole(role)}
+                </Badge>
+              ))}
+              {remainingRolesCount > 0 && (
+                <Badge
+                  variant="outline"
+                  className="border-border bg-surface-elevated text-muted text-xs"
+                >
+                  +{remainingRolesCount}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Footer: Team size, website, and likes */}
+          <div className="flex items-center justify-between pt-2 border-t border-border-muted">
+            {/* Team size */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-muted" aria-label={`Team size: ${teamSize} members`}>
+                <Users className="h-4 w-4" aria-hidden="true" />
+                <span className="text-xs">{teamSize}</span>
+              </div>
+
+              {/* Website link */}
+              {project.websiteUrl && (
+                <a
+                  href={project.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center text-muted hover:text-primary transition-colors"
+                  aria-label="Visit website"
+                >
+                  <Globe className="h-4 w-4" />
+                </a>
+              )}
             </div>
 
-            {/* Website link */}
-            {project.websiteUrl && (
-              <a
-                href={project.websiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center text-muted hover:text-primary transition-colors"
-                aria-label="Visit website"
-              >
-                <Globe className="h-4 w-4" />
-              </a>
-            )}
+            {/* Interactive Like Button */}
+            <LikeButton
+              projectId={project.id}
+              initialLiked={project.isLiked ?? false}
+              initialCount={project.likesCount}
+              variant="icon"
+            />
           </div>
-
-          {/* Interactive Like Button */}
-          <LikeButton
-            projectId={project.id}
-            initialLiked={project.isLiked ?? false}
-            initialCount={project.likesCount}
-            variant="icon"
-          />
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(open) => !open && setProfileUserId(null)}
+      />
+    </>
   );
 }

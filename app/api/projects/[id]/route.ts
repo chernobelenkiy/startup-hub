@@ -234,6 +234,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.language !== undefined) updateData.language = data.language;
     if (data.traction !== undefined) updateData.traction = data.traction || null;
+    if (data.visible !== undefined) updateData.visible = data.visible;
 
     // Determine the target language for translation update
     const targetLanguage = (data.language || existingProject.language) as SupportedLanguage;

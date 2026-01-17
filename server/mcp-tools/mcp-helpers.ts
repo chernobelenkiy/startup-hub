@@ -1,16 +1,23 @@
-export interface McpResponse {
+export interface McpResponse<T = unknown> {
   [key: string]: unknown;
+  success: boolean;
+  data?: T;
+  error?: string;
   content: Array<{ type: "text"; text: string }>;
 }
 
-export function mcpSuccess<T>(data: T): McpResponse {
+export function mcpSuccess<T>(data: T): McpResponse<T> {
   return {
+    success: true,
+    data,
     content: [{ type: "text", text: JSON.stringify(data, null, 2) }]
   };
 }
 
-export function mcpError(message: string): McpResponse {
+export function mcpError(message: string): McpResponse<never> {
   return {
+    success: false,
+    error: message,
     content: [{ type: "text", text: `Error: ${message}` }]
   };
 }

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/translations/project-translations";
 
 /**
  * Project validation schemas
@@ -103,9 +102,13 @@ export const createProjectWithTranslationsSchema = z.object({
   teamMembers: z.array(teamMemberSchema).default([]),
   lookingFor: z.array(z.string()).default([]),
   tags: z.array(z.string()).max(10, "Maximum 10 tags allowed").default([]),
+  visible: z.boolean().default(true),
 });
 
-export const updateProjectSchema = createProjectSchema.partial();
+export const updateProjectSchema = createProjectSchema.partial().extend({
+  // Visibility control - optional on update
+  visible: z.boolean().optional(),
+});
 
 /** Schema for updating a single translation */
 export const updateTranslationSchema = z.object({
@@ -125,4 +128,3 @@ export type UpdateTranslationInput = z.infer<typeof updateTranslationSchema>;
 export type TranslationFields = z.infer<typeof translationFieldsSchema>;
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 export type TeamMember = z.infer<typeof teamMemberSchema>;
-export { SupportedLanguage, SUPPORTED_LANGUAGES };

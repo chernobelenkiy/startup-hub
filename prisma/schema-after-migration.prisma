@@ -1,0 +1,255 @@
+// Startup Hub - Prisma Schema (After Deprecated Fields Migration)
+// ================================================================
+//
+// This is the target schema AFTER running the deprecated fields migration.
+// To apply:
+// 1. Run: npx tsx scripts/migrate-deprecated-fields.ts
+// 2. Verify: npx tsx scripts/migrate-deprecated-fields.ts --dry-run
+// 3. Replace schema.prisma with this file
+// 4. Run: npx prisma migrate dev --name remove-deprecated-fields
+//
+// The deprecated fields (title, shortDescription, pitch, traction,
+// investmentDetails, language) have been removed from the Project model.
+// All translatable content is now in the ProjectTranslation model.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================
+// ENUMS
+// =====================================
+
+enum ProjectStatus {
+  IDEA
+  MVP
+  BETA
+  LAUNCHED
+  PAUSED
+}
+
+// =====================================
+// MODELS
+// =====================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  avatarUrl     String?
+  locale        String    @default("en")
+
+  // Enhanced profile fields
+  bio           String?   @db.Text
+  title         String?
+  company       String?
+  socialLinks   Json?
+  openToContact Boolean   @default(false)
+
+  // Auth.js / NextAuth fields
+  accounts      Account[]
+  sessions      Session[]
+
+  // Application relations
+  projects      Project[]
+  likes         Like[]
+  apiTokens     APIToken[]
+  comments      Comment[]
+  commentLikes  CommentLike[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Project {
+  id                String        @id @default(cuid())
+  slug              String        @unique
+
+  // Ownership
+  ownerId           String
+  owner             User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Translations - all translatable content
+  translations      ProjectTranslation[]
+
+  screenshotUrl     String?
+  websiteUrl        String?
+
+  // Status
+  status            ProjectStatus @default(IDEA)
+  estimatedLaunch   DateTime?
+
+  // Investment
+  needsInvestment   Boolean       @default(false)
+
+  // Team & roles
+  teamMembers       Json          @default("[]")
+  lookingFor        String[]      @default([])
+
+  // Categorization
+  tags              String[]      @default([])
+
+  // Engagement
+  likesCount        Int           @default(0)
+  likes             Like[]
+  comments          Comment[]
+
+  // Visibility
+  visible           Boolean       @default(true)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([tags])
+  @@index([ownerId])
+  @@index([visible])
+  @@map("projects")
+}
+
+model ProjectTranslation {
+  id                String   @id @default(cuid())
+  projectId         String
+  language          String   // "en" | "ru"
+  title             String
+  shortDescription  String   @db.VarChar(280)
+  pitch             String   @db.Text
+  features          String?  @db.Text
+  traction          String?  @db.Text
+  investmentDetails String?
+
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([projectId, language])
+  @@index([projectId])
+  @@index([language])
+  @@map("project_translations")
+}
+
+model Like {
+  userId    String
+  projectId String
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, projectId])
+  @@map("likes")
+}
+
+model APIToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenPrefix String
+  tokenHash   String    @unique
+  name        String
+
+  permissions String[]  @default(["read"])
+
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenPrefix])
+  @@map("api_tokens")
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  parentId    String?
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+
+  likes       CommentLike[]
+  likesCount  Int       @default(0)
+
+  isEdited    Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  userId      String
+  commentId   String
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment     Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@id([userId, commentId])
+  @@map("comment_likes")
+}

@@ -7,3 +7,4 @@ export { EditProjectModal } from "./edit-project-modal";
 export { DeleteProjectDialog } from "./delete-project-dialog";
 export { ProjectCard } from "./project-card";
 export { ProjectCardSkeleton } from "./project-card-skeleton";
+export { ProjectGridSkeleton } from "./project-grid-skeleton";
