@@ -1,53 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { z } from "zod";
-import { getBestTranslation, DEFAULT_LANGUAGE } from "@/lib/translations/project-translations";
+import { db, ProjectStatus } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getBestTranslation, DEFAULT_LANGUAGE } from "@/lib/translations/project-translations";
 
-/**
- * Query parameters schema for public project listing
- */
 const querySchema = z.object({
   search: z.string().optional(),
-  status: z.string().optional(), // Comma-separated statuses
-  roles: z.string().optional(), // Comma-separated roles
+  status: z.string().optional(),
+  roles: z.string().optional(),
   investment: z.enum(["true", "false"]).optional(),
-  tags: z.string().optional(), // Comma-separated tags
+  tags: z.string().optional(),
   sort: z.enum(["newest", "oldest", "mostLiked"]).default("newest"),
   cursor: z.string().optional(),
   limit: z.coerce.number().min(1).max(50).default(20),
-  locale: z.string().optional(), // User's preferred locale
+  locale: z.string().optional(),
 });
 
-type SortOption = "newest" | "oldest" | "mostLiked";
-type ProjectStatus = import("@/lib/db").ProjectStatus;
+type SortOption = z.infer<typeof querySchema>["sort"];
 
 /**
  * GET /api/projects/public
- * Public project listing with filtering, sorting, and cursor-based pagination
- * Returns isLiked field if user is authenticated
- * Supports multilingual content via locale parameter or Accept-Language header
+ * Public project listing with filtering, sorting, and cursor-based pagination.
+ * Returns isLiked field if user is authenticated.
+ * Supports multilingual content via locale parameter or Accept-Language header.
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Check for authenticated user (optional for this endpoint)
-    // Wrap in try-catch to handle auth failures gracefully
-    let userId: string | undefined;
-    try {
-      const session = await auth();
-      userId = session?.user?.id;
-    } catch {
-      // Auth failed - continue as unauthenticated
-      userId = undefined;
-    }
+    // Get authenticated user (optional - failures are treated as unauthenticated)
+    const session = await auth().catch(() => null);
+    const userId = session?.user?.id;
 
-    // Get locale from query param, header, or default to "ru"
     const headerLocale = request.headers.get("Accept-Language")?.split(",")[0]?.split("-")[0];
 
-    // Parse and validate query parameters
     const queryResult = querySchema.safeParse({
       search: searchParams.get("search") || undefined,
       status: searchParams.get("status") || undefined,
@@ -133,36 +120,27 @@ export async function GET(request: NextRequest) {
     const projects = await db.project.findMany({
       where,
       orderBy,
-      take: limit + 1, // Fetch one extra to determine if there are more
+      take: limit + 1,
       cursor: cursorClause,
-      skip: cursorClause ? 1 : 0, // Skip the cursor item itself
+      skip: cursorClause ? 1 : 0,
       include: {
         translations: true,
         owner: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
+          select: { id: true, name: true, image: true },
         },
-        // Include likes for the current user to determine isLiked
-        likes: userId
-          ? {
-              where: { userId },
-              select: { userId: true },
-            }
-          : undefined,
+        likes: {
+          where: userId ? { userId } : { userId: "__none__" },
+          select: { userId: true },
+        },
       },
     });
 
-    // Determine if there are more results
     const hasMore = projects.length > limit;
-    const rawProjects = hasMore ? projects.slice(0, limit) : projects;
-    const nextCursor = hasMore ? rawProjects[rawProjects.length - 1]?.id : null;
+    const items = hasMore ? projects.slice(0, limit) : projects;
+    const nextCursor = hasMore ? items[items.length - 1]?.id : null;
 
-    // Transform projects with resolved translations
-    const resultProjects = rawProjects.map((project) => {
-      const { likes, translations, ...rest } = project;
+    const resultProjects = items.map((project) => {
+      const { likes, translations, owner, ...rest } = project;
       const translation = getBestTranslation(translations, locale ?? DEFAULT_LANGUAGE);
 
       return {
@@ -179,8 +157,8 @@ export async function GET(request: NextRequest) {
         teamMembers: rest.teamMembers,
         needsInvestment: rest.needsInvestment,
         createdAt: rest.createdAt,
-        owner: rest.owner,
-        isLiked: Boolean(userId && likes?.length),
+        owner,
+        isLiked: Boolean(userId && likes.length > 0),
         language: translation?.language ?? rest.language,
       };
     });
@@ -191,7 +169,7 @@ export async function GET(request: NextRequest) {
       hasMore,
     });
   } catch (error) {
-    console.error("Error fetching public projects:", error);
+    console.error("[api/projects/public] Error fetching projects:", error);
     return NextResponse.json(
       { error: "Failed to fetch projects" },
       { status: 500 }
@@ -199,18 +177,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * Build orderBy clause based on sort option
- */
-function buildOrderBy(sort: SortOption) {
-  switch (sort) {
-    case "newest":
-      return [{ createdAt: "desc" as const }, { id: "desc" as const }];
-    case "oldest":
-      return [{ createdAt: "asc" as const }, { id: "asc" as const }];
-    case "mostLiked":
-      return [{ likesCount: "desc" as const }, { createdAt: "desc" as const }, { id: "desc" as const }];
-    default:
-      return [{ createdAt: "desc" as const }, { id: "desc" as const }];
-  }
+const ORDER_BY_MAP: Record<SortOption, Prisma.ProjectOrderByWithRelationInput[]> = {
+  newest: [{ createdAt: "desc" }, { id: "desc" }],
+  oldest: [{ createdAt: "asc" }, { id: "asc" }],
+  mostLiked: [{ likesCount: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+};
+
+function buildOrderBy(sort: SortOption): Prisma.ProjectOrderByWithRelationInput[] {
+  return ORDER_BY_MAP[sort] ?? ORDER_BY_MAP.newest;
 }
